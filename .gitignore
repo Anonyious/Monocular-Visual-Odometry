@@ -1,0 +1,52 @@
+# ── Datasets (multi-GB, never commit) ────────────────────────────────────────
+data/kitti/
+data/*.zip
+data/*.tar.gz
+
+# ── Results and outputs ───────────────────────────────────────────────────────
+results/*/trajectory.txt
+results/*/point_cloud.pcd
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ── Virtual environment ───────────────────────────────────────────────────────
+venv/
+env/
+.venv/
+.env/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── C++ build artefacts ───────────────────────────────────────────────────────
+*.so
+*.dylib
+*.o
+*.a
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles/
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/

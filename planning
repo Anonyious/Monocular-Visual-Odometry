@@ -1,0 +1,356 @@
+# Monocular Visual Odometry with Pose Graph Optimization
+
+A complete, professor-review-grade implementation of a monocular visual odometry pipeline built
+from first principles. The system takes a KITTI video sequence as input and outputs a
+real-time 3D reconstruction of the environment and an accurate camera trajectory, with
+quantitative ATE/RPE evaluation against ground-truth GPS poses.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **KITTI Dataset**: The KITTI Odometry Benchmark sequences are several GB each. The system will
+> include an automated download script, but you must have ~5–20 GB free space and run it once
+> before the pipeline can execute. Sequence 00 (urban loop, ~4 km) is the recommended starting
+> point as it contains loop-closure opportunities.
+
+> [!WARNING]
+> **g2o / Pose Graph Optimization Backend**: Native g2o Python bindings (`g2o-python`) can be
+> difficult to build/install reliably. The plan handles this with a layered fallback strategy:
+> (1) try `g2o-python` via pip, (2) fall back to `graphslam` (pure-Python SE3 graph solver),
+> (3) worst case, fall back to `scipy.optimize.least_squares` custom implementation — all three
+> implementations of the same Gauss-Newton/Levenberg-Marquardt objective function, so the math
+> is identical regardless of which backend loads.
+
+> [!NOTE]
+> **Scale Ambiguity**: Monocular VO cannot recover metric scale. We resolve this using the
+> known camera height above ground from the KITTI calibration files. This is the same trick
+> used in KITTI's own reference implementations and must be documented in the report.
+
+---
+
+## Architecture Overview
+
+```
+KITTI Sequence
+     │
+     ▼
+┌─────────────────────┐
+│  1. Data Loader     │  Reads images, calibration K, distortion, ground truth poses
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  2. Preprocessor    │  Undistort frames using K and distortion coefficients (cv2.undistort)
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  3. Feature Frontend│  ORB detection → LK Optical Flow tracking across frames
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  4. Motion Estimator│  Essential Matrix (5-pt + RANSAC) → SVD pose recovery (R, t)
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  5. Local Map       │  Triangulation → PnP refinement against 3D landmarks
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  6. Pose Graph      │  Build graph: nodes = SE3 poses, edges = odometry constraints
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  7. Loop Closure    │  BoW image retrieval → geometric verification → new graph edge
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  8. Graph Optimizer │  g2o / graphslam / scipy Gauss-Newton / LM optimization
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│  9. Evaluator       │  ATE + RPE via `evo` library against KITTI ground truth
+└─────────────────────┘
+     │
+     ▼
+┌─────────────────────┐
+│ 10. Visualizer      │  Open3D real-time 3D trajectory + point cloud + GT overlay
+└─────────────────────┘
+```
+
+---
+
+## Proposed Changes
+
+### Project Skeleton and Configuration
+
+#### [NEW] `Visual-Odometry/` (root)
+
+| File / Dir | Purpose |
+|---|---|
+| `README.md` | Full project description, setup instructions, math derivations summary, results |
+| `requirements.txt` | All Python dependencies with pinned versions |
+| `setup.py` | Installable package definition |
+| `.gitignore` | Excludes datasets, build artifacts, `__pycache__` |
+| `data/` | Symlink or directory for KITTI sequences (excluded from git via `.gitignore`) |
+| `scripts/download_kitti.py` | Automated download + extraction of KITTI sequence 00 |
+| `scripts/run_vo.py` | Main entry point: `python scripts/run_vo.py --sequence 00` |
+| `scripts/evaluate.py` | Run `evo_ape` and `evo_rpe` and dump LaTeX table |
+| `notebooks/math_derivations.ipynb` | Step-by-step math: pinhole model, E matrix, RANSAC, LM optimizer |
+
+---
+
+### Core Library (`vo/`)
+
+#### [NEW] `vo/__init__.py`
+Package init, version string.
+
+#### [NEW] `vo/camera.py` — Pinhole Camera Model
+```python
+class Camera:
+    K: np.ndarray          # 3×3 intrinsic matrix
+    dist_coeffs: np.ndarray
+    def undistort(frame) -> np.ndarray
+    def normalize(px_coords) -> np.ndarray  # K^{-1} * [u,v,1]^T
+    def project(X_w, R, t) -> np.ndarray    # K[R|t]X_w
+```
+**Math implemented**: Projective map `x = K[R|t]X`, lens distortion correction
+`r^2 = x_n^2 + y_n^2`, radial model `x_corrected = x*(1 + k1*r^2 + k2*r^4 + k3*r^6)`.
+
+#### [NEW] `vo/features.py` — Feature Detection and Tracking
+```python
+class FeatureFrontend:
+    def detect(frame) -> keypoints, descriptors   # ORB
+    def track(prev, curr, kp_prev) -> kp_curr, mask  # Lucas-Kanade
+    def match(desc1, desc2) -> good_matches       # BFMatcher + Lowe ratio test
+```
+**Math implemented**: ORB = FAST detector + Harris score + BRIEF descriptor with learned
+rotation. LK optical flow pyramid from the image gradient formulation:
+`∇I · v = -I_t` (brightness constancy linearized).
+
+#### [NEW] `vo/motion.py` — Essential Matrix and Pose Recovery
+```python
+class MotionEstimator:
+    def compute_essential(kp1, kp2, K) -> E, mask  # 5-pt RANSAC
+    def recover_pose(E, kp1, kp2, K) -> R, t, mask
+    def triangulate(kp1, kp2, P1, P2) -> points_3d
+```
+**Math implemented**:
+- Epipolar constraint: `x2^T E x1 = 0`
+- E singular value structure: `svd(E) = U diag(1,1,0) V^T`
+- Four pose hypotheses from E: `(R1,t), (R1,-t), (R2,t), (R2,-t)`; correct one selected by positive depth chirality test.
+- Triangulation: DLT (Direct Linear Transform) forming `A x = 0` → min-norm solution via SVD.
+
+#### [NEW] `vo/ransac.py` — Custom RANSAC Implementation
+```python
+class RANSAC:
+    def __init__(model_fn, min_samples, threshold, confidence=0.99)
+    def fit(data) -> best_model, inlier_mask
+```
+**Math implemented**:
+Required iterations: `N = log(1-p) / log(1-(1-ε)^s)` where `p` = confidence,
+`ε` = outlier ratio, `s` = min sample size. Adaptive RANSAC updates `N` dynamically
+as the inlier ratio estimate improves.
+
+#### [NEW] `vo/local_map.py` — Triangulation and PnP Refinement
+```python
+class LocalMap:
+    points: dict[int, np.ndarray]  # point_id -> 3D position
+    observations: dict[int, list]  # point_id -> [(frame_id, kp_idx)]
+    def add_keyframe(frame_id, R, t, kps, desc)
+    def pnp_localize(kps, desc, K) -> R, t, inliers  # solvePnPRansac
+    def prune_map(max_points=2000)
+```
+
+#### [NEW] `vo/pose_graph.py` — Pose Graph Data Structure
+```python
+class PoseGraph:
+    nodes: dict[int, SE3Pose]            # frame_id -> (R, t) in SE(3)
+    edges: list[PoseEdge]                # (i, j, relative_transform, information_matrix)
+    def add_node(frame_id, R, t)
+    def add_edge(i, j, R_ij, t_ij, info=None)
+    def to_g2o_format() -> str           # for file-based g2o invocation
+    def from_optimized(vertices_dict)    # update poses post-optimization
+```
+**Math**: SE(3) Lie group composition `T_ij = T_j^{-1} T_i`, error residual
+`e_ij = log(T̂_ij^{-1} · T_ij)` in the `se(3)` Lie algebra.
+
+#### [NEW] `vo/optimizer.py` — Pose Graph Optimization Backend
+```python
+class PoseGraphOptimizer:
+    """Layered backend: g2o → graphslam → scipy fallback"""
+    def optimize(graph: PoseGraph, n_iter=20) -> PoseGraph
+    def _optimize_g2o(graph) -> PoseGraph
+    def _optimize_graphslam(graph) -> PoseGraph
+    def _optimize_scipy(graph) -> PoseGraph   # custom Gauss-Newton
+```
+**Math implemented**:
+- Cost function: `F(x) = Σ_ij e_ij^T Ω_ij e_ij`
+- Gauss-Newton update: `(J^T Ω J) Δx = -J^T Ω e`
+- Schur complement to exploit sparsity: `[B E; E^T C] [Δx_p; Δx_l] = [v; w]`
+  (eliminates landmark variables, solves for poses first then back-substitutes).
+
+#### [NEW] `vo/loop_closure.py` — Bag-of-Words Loop Detection
+```python
+class LoopClosureDetector:
+    vocabulary: list     # K-means visual word clusters (trained offline)
+    database: dict       # frame_id -> BoW histogram
+    def train_vocabulary(descriptors_list, n_words=500)
+    def query(desc, top_k=5) -> list[(frame_id, similarity_score)]
+    def verify_geometrically(kp_query, kp_candidate, K) -> R, t, is_valid
+```
+**Math**: TF-IDF weighting of visual words. Geometric verification via essential
+matrix RANSAC on matched ORB descriptors between candidate pair.
+
+#### [NEW] `vo/odometry.py` — Pipeline Orchestrator
+```python
+class VisualOdometry:
+    def __init__(config_path)
+    def process_frame(frame, frame_id) -> current_pose
+    def run(sequence_loader) -> trajectory
+    def save_trajectory_kitti(path)
+```
+
+---
+
+### Data and Calibration
+
+#### [NEW] `vo/data/kitti_loader.py`
+```python
+class KITTISequence:
+    def __init__(sequence_root, seq_id)  # reads calib.txt, times.txt, images
+    def __iter__() -> (frame_id, image, timestamp)
+    def ground_truth() -> list[np.ndarray]  # 4×4 SE3 matrices
+    def camera_matrix() -> K, dist_coeffs
+```
+
+---
+
+### Visualization
+
+#### [NEW] `vo/visualization/realtime_viewer.py`
+```python
+class RealtimeViewer:
+    """Open3D non-blocking visualizer"""
+    def update(trajectory_poses, point_cloud, gt_poses)
+    def run_async()
+    def save_screenshot(path)
+```
+
+#### [NEW] `vo/visualization/trajectory_plot.py`
+```python
+def plot_trajectory_2d(estimated, ground_truth, save_path)
+def plot_trajectory_3d(estimated, ground_truth, save_path)
+def plot_error_over_time(ate_per_frame, rpe_per_frame, save_path)
+```
+
+---
+
+### Evaluation
+
+#### [NEW] `vo/evaluation/metrics.py`
+```python
+def compute_ate(estimated_poses, gt_poses, align=True) -> float
+def compute_rpe(estimated_poses, gt_poses, delta=1) -> float
+def umeyama_alignment(estimated, reference) -> R, t, scale  # Sim(3) alignment
+```
+
+---
+
+### Documentation and Report
+
+#### [NEW] `docs/technical_report.md` (also rendered as PDF via Pandoc)
+Sections:
+1. **Camera Calibration**: Pinhole model derivation, distortion polynomial, DLT calibration.
+2. **Feature Tracking**: ORB derivation, brightness constancy equation, LK pyramid convergence.
+3. **Epipolar Geometry**: Full derivation of the Essential Matrix from the camera model, proof
+   that `rank(E)=2` and its two equal singular values.
+4. **RANSAC**: Probabilistic analysis, iteration formula derivation.
+5. **Pose Graph Optimization**: SE(3) Lie algebra, Gauss-Newton, Schur complement trick.
+6. **Results**: ATE/RPE tables for sequences 00, 02, 05, 08; trajectory plots; runtime analysis.
+
+#### [NEW] `docs/math_appendix.md`
+LaTeX-rendered derivations for all proofs (renders in GitHub with fallback to PDF).
+
+#### [NEW] `notebooks/math_derivations.ipynb`
+Interactive cells: each formula rendered with `sympy` and numerically validated.
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Which KITTI sequences to benchmark?** Sequence 00 has a large loop suitable
+> for demonstrating loop closure. Sequences 05 and 07 are shorter. Do you want
+> all four populated in the report, or just sequence 00 as the primary demo?
+
+> [!IMPORTANT]
+> **Live webcam demo?** The platform allows live webcam input as a secondary mode
+> (after KITTI validation passes). This requires camera calibration with a
+> checkerboard. Should I include the full calibration module + webcam live mode,
+> or keep it dataset-only for now?
+
+> [!NOTE]
+> **C++ components**: The project description mentions C++ for performance-critical
+> parts. For this initial implementation I propose a pure-Python pipeline that is
+> fully correct but not real-time at 30 fps. A follow-up C++ extension module
+> (via pybind11) can be added for the optical flow and ORB stages. Agreed?
+
+> [!NOTE]
+> **Notebook vs Report**: The math derivations can live in a Jupyter notebook
+> (nice for interactive exploration) or a compiled LaTeX/PDF technical report.
+> I recommend both — the notebook is for your own learning, the PDF is the
+> deliverable. Proceed with both?
+
+---
+
+## Verification Plan
+
+### Automated Tests
+```bash
+# Unit tests for each module
+pytest tests/ -v
+
+# Smoke test: run 50 frames of sequence 00, assert no exception
+python scripts/run_vo.py --sequence 00 --max_frames 50
+
+# Quantitative evaluation (requires full KITTI sequence 00)
+python scripts/evaluate.py --sequence 00
+# Expected: ATE < 50m (unoptimized), < 20m (with pose graph opt), RPE < 2%
+
+# evo CLI verification
+evo_ape kitti data/kitti/00/poses.txt results/00/trajectory.txt -as
+evo_rpe kitti data/kitti/00/poses.txt results/00/trajectory.txt --delta 1
+```
+
+### Manual Verification
+- Watch the Open3D visualization to confirm the trajectory builds coherently (map doesn't explode).
+- Confirm the trajectory plot matches the KITTI ground-truth shape visually (urban block structure).
+- For loop closure: on sequence 00 the car returns to start — the estimated trajectory should visibly "snap" to the ground truth after optimization.
+
+---
+
+## Implementation Order (Milestones)
+
+| # | Milestone | Key Deliverable |
+|---|---|---|
+| 1 | Project skeleton + KITTI loader | Can iterate frames with calibration |
+| 2 | Camera model + undistortion | Undistorted frame viewer |
+| 3 | ORB + LK tracking | Feature track visualization |
+| 4 | Essential matrix + RANSAC | Per-frame R, t estimation |
+| 5 | Trajectory integration + scale recovery | 3D path without drift correction |
+| 6 | Local map + PnP | Reduced drift relative to step 5 |
+| 7 | Pose graph construction + optimizer | Gauss-Newton backend working |
+| 8 | Loop closure (BoW) | Snap-to-start on sequence 00 |
+| 9 | Evaluation + `evo` integration | ATE/RPE numbers in console |
+| 10 | Open3D real-time visualizer | Demo video captured |
+| 11 | Technical report + math derivations notebook | PDF + `.ipynb` done |
+| 12 | GitHub polish (README, CI, demo GIF) | Repository submission-ready |
