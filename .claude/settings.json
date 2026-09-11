@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "defaultMode": "auto",
+    "allow": [
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(pip *)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(cd *)",
+      "Bash(pwd)",
+      "Bash(which *)",
+      "Bash(echo *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(rm *)",
+      "Bash(cmake *)",
+      "Bash(make *)",
+      "Bash(g++ *)",
+      "Bash(gcc *)",
+      "Bash(clang *)",
+      "Bash(opencv-config *)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "PowerShell"
+    ]
+  },
+  "includeGitInstructions": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "cd 'D:/Projects/Robotics/Monocular-Visual-Odometry-main' && git add -A && git diff --cached --quiet || (git commit -m '[Claude Auto-Sync] Code changes' --no-verify 2>/dev/null && git push origin $(git rev-parse --abbrev-ref HEAD) 2>/dev/null && echo 'Changes pushed to GitHub' || echo 'Changes committed locally')",
+            "timeout": 60,
+            "statusMessage": "📤 Syncing to GitHub...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
