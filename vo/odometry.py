@@ -209,8 +209,6 @@ class VisualOdometry:
                     logger.debug(
                         "Frame %d: PnP pose (%d inliers)", frame_id, n_pnp_inliers
                     )
-<<<<<<< HEAD
-=======
                     # Create PoseEstimate for pose graph edge from absolute pose
                     if self._keyframe_ids:
                         prev_kf_id = self._keyframe_ids[-1]
@@ -219,7 +217,7 @@ class VisualOdometry:
                         T_curr = np.eye(4)
                         T_curr[:3, :3] = R_pnp
                         T_curr[:3, 3] = t_pnp
-                        T_rel = se3_compose(se3_inverse(T_prev), T_curr)
+                        T_rel = se3_compose(T_curr, se3_inverse(T_prev))
                         pose = PoseEstimate(
                             R=T_rel[:3, :3],
                             t=T_rel[:3, 3],
@@ -228,7 +226,6 @@ class VisualOdometry:
                             n_inliers=n_pnp_inliers,
                             n_total=n_pnp_inliers,
                         )
->>>>>>> origin/master
 
         # 2. Fallback to Essential Matrix if PnP unavailable
         if not used_pnp:
