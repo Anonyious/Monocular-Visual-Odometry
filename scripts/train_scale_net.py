@@ -117,8 +117,8 @@ class ScaleDataset(Dataset):
             entry = self.entries[idx]
 
             # Load frames (from disk or cache)
-            frame_curr_path = self.jsonl_path.parent.parent / entry["frame_curr"]
-            frame_next_path = self.jsonl_path.parent.parent / entry["frame_next"]
+            frame_curr_path = Path(entry["frame_curr"])
+            frame_next_path = Path(entry["frame_next"])
 
             if self.cache_frames and idx in self.frame_cache:
                 frame_curr, frame_next = self.frame_cache[idx]
