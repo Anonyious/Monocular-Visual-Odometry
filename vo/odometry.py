@@ -261,11 +261,18 @@ class VisualOdometry:
             if n_tracked >= 8:
                 pose = self._motion.estimate(track.good_prev, track.good_curr)
             if pose is not None:
-                # Scale recovery via RANSAC ground-plane fitting
-                pts3d = self._motion.triangulate(
-                    track.good_prev, track.good_curr, pose.R, pose.t
-                )
-                scale = self._scale_recovery.update(pts3d)
+                if self.use_learned_scale:
+                    # Learned scale: predict from optical flow magnitude
+                    scale = self._scale_recovery.update(frame)
+                    logger.debug(
+                        "Frame %d: learned scale = %.4f", frame_id, scale
+                    )
+                else:
+                    # Scale recovery via RANSAC ground-plane fitting
+                    pts3d = self._motion.triangulate(
+                        track.good_prev, track.good_curr, pose.R, pose.t
+                    )
+                    scale = self._scale_recovery.update(pts3d)
 
                 # Integrate relative pose into global pose
                 self._current_t = (
@@ -384,9 +391,15 @@ class VisualOdometry:
         self._prev_kf_n_feats = 0
         self._pose_graph = PoseGraph()
         self._local_map = LocalMap(self.camera)
-        self._scale_recovery = GroundPlaneScaleRecovery(
-            camera_height=self.camera_height
-        )
+        if self.use_learned_scale:
+            self._scale_recovery = ScaleRecoveryNetwork(
+                model_path=getattr(self, '_scale_model_path', None),
+                device="cpu"
+            )
+        else:
+            self._scale_recovery = GroundPlaneScaleRecovery(
+                camera_height=self.camera_height
+            )
         # Reset loop detector so BoW database / vocabulary / score history
         # do not persist across sequences on the same VO instance.
         old_loop_detector = self._loop_detector
