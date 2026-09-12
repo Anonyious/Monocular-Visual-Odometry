@@ -278,8 +278,9 @@ python scripts/ablation_study.py --sequences 01 02 03 05 06 08 --quick
 
 ## References
 
-See [docs/technical_report.md](docs/technical_report.md) for the full bibliography
-and mathematical derivations.
+See [docs/research_paper.md](docs/research_paper.md) for the full paper with
+mathematical derivations, training methodology, and ablation analysis.
+See [docs/technical_report.md](docs/technical_report.md) for the original technical report.
 
 **Key papers:**
 - Geiger et al., *KITTI Vision Benchmark Suite*, CVPR 2012
