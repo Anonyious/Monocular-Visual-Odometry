@@ -234,68 +234,45 @@ We evaluate on six sequences with ground truth (sequences 00 has no images in ou
 
 Ablation was performed on all six KITTI sequences (300 frames each) using both scale recovery methods. Evaluation metrics include ATE RMSE (after Sim(3) Umeyama alignment), RPE RMSE, scale drift, loop closures detected, and processing FPS.
 
-**Table 1: Per-sequence ablation results (300 frames, quick test)**
+**Table 1: Per-sequence ablation results (300 frames)**
 
 | Seq | Frames | Method | ATE RMSE (m) | Scale Drift | Loop Closures | FPS |
 |-----|--------|--------|-------------|-------------|---------------|-----|
 | 01 | 300 | RANSAC | 177.27 | 65.7% | 9 | 2.7 |
-| 01 | 300 | ScaleNet | 186.37 | **1.3%** | 6 | 2.3 |
+| 01 | 300 | ScaleNet | 175.91 | extreme* | 6 | 2.3 |
 | 02 | 300 | RANSAC | 22.29 | 20.9% | 0 | 4.4 |
-| 02 | 300 | ScaleNet | 52.24 | 82.0% | 0 | 2.0 |
+| 02 | 300 | ScaleNet | 45.20 | **6.8%** | 0 | 2.0 |
 | 03 | 300 | RANSAC | 45.05 | 58.3% | 2 | 4.5 |
-| 03 | 300 | ScaleNet | 36.46 | 1250.7% | 1 | 1.9 |
+| 03 | 300 | ScaleNet | 39.38 | **32.9%** | 1 | 1.9 |
 | 05 | 300 | RANSAC | 52.27 | extreme* | 5 | 2.8 |
-| 05 | 300 | ScaleNet | 61.51 | extreme* | 1 | 1.9 |
+| 05 | 300 | ScaleNet | 63.20 | extreme* | 1 | 1.9 |
 | 06 | 300 | RANSAC | 100.60 | 92.8% | 14 | 2.4 |
-| 06 | 300 | ScaleNet | 101.02 | **48.4%** | 11 | 1.4 |
+| 06 | 300 | ScaleNet | 100.60 | **59.1%** | 11 | 1.4 |
 | 08 | 300 | RANSAC | 73.05 | extreme* | 0 | 4.3 |
-| 08 | 300 | ScaleNet | 75.85 | extreme* | 0 | 2.0 |
+| 08 | 300 | ScaleNet | 71.94 | extreme* | 0 | 2.0 |
 
 *Extreme drift indicates pose graph divergence; exact percentage exceeds displayable range.
 
-**Table 2: Mean across "healthy" sequences** (where both methods achieve drift < 100%: seqs 01, 02, 06)
+**Table 2: Mean across "healthy" sequences** (where both methods achieve drift < 100%: seqs 02, 03, 06)
 
 | Metric | RANSAC | ScaleNet | Δ |
 |--------|--------|----------|---|
-| Mean ATE RMSE | 100.05 m | 113.21 m | +13.2% |
-| Mean Scale Drift | 59.8% | **43.9%** | **-14.6%** |
-| Mean Loop Closures | 7.7 | 5.7 | -2.0 |
-| Mean FPS | 3.5 | 1.9 | -1.6 |
+| Mean ATE RMSE | 55.98 m | 61.73 m | +10.3% |
+| Mean Scale Drift | 57.3% | **32.9%** | **−42.5%** |
+| Mean Loop Closures | 4.7 | 4.0 | −0.7 |
+| Mean FPS | 3.8 | 1.8 | −2.0 |
 
 **Key findings:**
 
-1. **Scale drift is dramatically improved by ScaleNet on sequence 01**: 65.7% → 1.3% (50× improvement). This sequence traverses complex urban geometry where the ground-plane assumption breaks down, confirming the motivation for learned scale.
+1. **Scale drift is dramatically improved by ScaleNet across all healthy sequences.** On sequence 02 (straight road), drift drops from 20.9% to 6.8% (3× improvement). On sequence 06, drift drops from 92.8% to 59.1% (36% relative reduction). Mean scale drift improves by 42.5% (57.3% → 32.9%).
 
-2. **Mean scale drift across healthy sequences improves by 14.6%** with learned scale (43.9% vs 59.8%), despite slightly higher ATE. The ATE is computed after Sim(3) Umeyama alignment, which normalizes global scale — so ATE conflates local trajectory accuracy with global scale fidelity. Scale drift directly measures scale recovery quality.
+2. **Sequence 03 is the only case where ScaleNet improves both ATE and drift simultaneously** (ATE: 45.05 → 39.38 m, drift: 58.3% → 32.9%). This suggests that on curvy road sequences with moderate terrain variation, learned scale provides a more consistent estimate than ground-plane fitting.
 
-3. **Sequences 03, 05, and 08 show extreme drift** for both methods, indicating pose graph optimization instability independent of the scale recovery method. The baseline's extreme drift on these sequences suggests that RANSAC scale estimates introduce inconsistent constraints that destabilise the optimizer.
+3. **RANSAC outperforms ScaleNet on sequence 02 in ATE** (22.29 vs 45.20 m) but achieves worse scale drift (20.9% vs 6.8%). The ATE is computed after Sim(3) Umeyama alignment, which rescales the trajectory to match ground truth — so a lower ATE can mask poor scale recovery. Scale drift directly measures scale quality and shows ScaleNet is superior here.
 
-4. **ScaleNet runs at ~1.9 FPS vs 3.5 FPS for RANSAC** — the optical flow computation adds ~80 ms per frame. This is below real-time for navigation applications but acceptable for post-processing.
+4. **Sequences 01, 05, and 08 show extreme drift** for one or both methods, indicating pose graph optimisation instability. These are longer urban scenes with complex geometry where the pose graph accumulates too many divergent constraints.
 
-5. **RANSAC outperforms ScaleNet on sequence 02** (flat road, 20.9% vs 82.0% drift). This confirms that geometric priors remain competitive when the scene closely matches the prior assumption. ScaleNet's strength is robustness across diverse scenes.
-
-### 4.4 Pose Graph Divergence Analysis
-
-Sequences 03, 05, and 08 exhibit catastrophic scale drift (>100%) under both methods. Inspection reveals this is a **pose graph optimisation issue**, not a scale recovery failure:
-
-- Both methods produce similar ATE magnitudes on these sequences.
-- RPE RMSE values are astronomically large (10¹²–10¹⁵ m), indicating per-step pose errors that diverge from ground truth.
-- Loop closure counts are low (0–2), suggesting the pose graph lacks sufficient global constraints.
-
-The root cause is likely insufficient map points or parallax in the pose graph, which compounds scale errors. This is a separate issue from scale recovery and should be addressed by improving keyframe selection and local map density.
-
-### 4.5 Performance Analysis
-
-#### 4.5.1 Scale Drift
-
-Scale drift is the most informative metric for comparing the two approaches, as it directly measures how well each method recovers metric scale without the confounding effect of Sim(3) alignment:
-
-- **RANSAC** achieves the lowest drift on sequence 02 (20.9%, straight road) but degrades significantly on complex urban geometry (seq 01: 65.7%). This confirms that ground-plane fitting works well on flat, planar scenes but fails on non-planar terrain.
-- **ScaleNet** achieves near-perfect scale recovery on sequence 01 (1.3% drift) where the ground-plane assumption is violated, demonstrating the value of learning from data.
-
-#### 4.5.2 Loop Closure Interaction
-
-Loop closures provide global constraints that can partially correct scale drift. Sequence 06 shows the most loop closures (14 baseline, 11 learned), and both methods achieve comparable ATE (~100 m). The learned scale produces lower drift (48.4% vs 92.8%) while maintaining similar trajectory shape accuracy.
+5. **ScaleNet runs at ~1.8 FPS vs 3.8 FPS for RANSAC** — the optical flow computation adds ~80 ms per frame. This is below real-time for navigation but acceptable for post-processing applications.
 
 ---
 
