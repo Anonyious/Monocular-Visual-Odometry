@@ -484,13 +484,8 @@ class VisualOdometry:
                 keypoints=kps,
                 descriptors=descs,
                 prev_frame_id=prev_kf_id,
-<<<<<<< HEAD
-                pts_prev=prev_kps[:max_pts],
-                pts_curr=kps[:max_pts],
-=======
                 pts_prev=pts_prev[:max_pts],
                 pts_curr=pts_curr[:max_pts],
->>>>>>> origin/master
             )
 
         # Loop closure check
