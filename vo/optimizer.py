@@ -409,12 +409,9 @@ class PoseGraphOptimizer:
             if new_cost < total_cost:
                 lam = max(lam / 3, 1e-10)
             else:
-<<<<<<< HEAD
-=======
                 # Reject step: revert poses and increase damping
                 for fid, T_old in old_poses.items():
                     graph._nodes[fid].T = T_old
->>>>>>> origin/master
                 lam = min(lam * 3, 1e6)
 
             if np.linalg.norm(delta_xi) < 1e-8:
