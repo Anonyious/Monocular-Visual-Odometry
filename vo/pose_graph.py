@@ -323,13 +323,9 @@ class PoseGraph:
         """
         Compute the 6-vector residual for edge (i→j).
 
-<<<<<<< HEAD
-        e_ij = log(T̂_ij⁻¹ · T_j⁻¹ · T_i)
-=======
         e_ij = log(T̂_ij⁻¹ · T_ij_pred)
 
         where T_ij_pred = T_j · T_i⁻¹ is the predicted relative pose from i to j.
->>>>>>> origin/master
 
         This is zero when the current graph poses are perfectly consistent
         with the measured relative transform T̂_ij.
