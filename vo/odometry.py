@@ -77,11 +77,7 @@ from .local_map import LocalMap
 from .loop_closure import LoopClosureDetector
 from .motion import MotionEstimator, PoseEstimate
 from .optimizer import PoseGraphOptimizer
-<<<<<<< HEAD
-from .pose_graph import PoseGraph
-=======
 from .pose_graph import PoseGraph, se3_compose, se3_inverse
->>>>>>> origin/master
 from .scale_recovery import GroundPlaneScaleRecovery
 from .evaluation.metrics import save_trajectory_kitti
 
