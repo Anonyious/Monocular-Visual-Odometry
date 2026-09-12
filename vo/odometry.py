@@ -65,7 +65,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import cv2
 import numpy as np
@@ -79,6 +79,7 @@ from .motion import MotionEstimator, PoseEstimate
 from .optimizer import PoseGraphOptimizer
 from .pose_graph import PoseGraph, se3_compose, se3_inverse
 from .scale_recovery import GroundPlaneScaleRecovery
+from .scale_net import ScaleRecoveryNetwork
 from .evaluation.metrics import save_trajectory_kitti
 
 logger = logging.getLogger(__name__)
@@ -116,13 +117,26 @@ class VisualOdometry:
         keyframe_max_gap: int = 10,
         vocab_path: Optional[str] = None,
         verbose: bool = True,
+        use_learned_scale: bool = False,
+        scale_model_path: Optional[str] = None,
     ) -> None:
+        """
+        Parameters
+        ----------
+        use_learned_scale : bool
+            If True, use ScaleNet (CNN) for scale recovery instead of
+            RANSAC ground-plane fitting. Requires a trained model path.
+        scale_model_path : str | None
+            Path to trained ScaleNet checkpoint (.pth). Required when
+            use_learned_scale=True. Ignored otherwise.
+        """
         self.camera = camera
         self.camera_height = camera_height
         self.kf_track_ratio = kf_track_ratio
         self.kf_parallax_deg = kf_parallax_deg
         self.keyframe_max_gap = keyframe_max_gap
         self.verbose = verbose
+        self.use_learned_scale = use_learned_scale
 
         # ── Sub-components ────────────────────────────────────────────────────
         self._frontend = FeatureFrontend(n_features=3000)
@@ -131,7 +145,22 @@ class VisualOdometry:
         self._loop_detector = LoopClosureDetector(camera, vocab_path=vocab_path)
         self._pose_graph = PoseGraph()
         self._optimizer = PoseGraphOptimizer(n_iterations=20, verbose=False)
-        self._scale_recovery = GroundPlaneScaleRecovery(camera_height=camera_height)
+
+        if use_learned_scale:
+            if scale_model_path is None:
+                raise ValueError(
+                    "use_learned_scale=True requires scale_model_path. "
+                    "Train with: python scripts/train_scale_net.py"
+                )
+            self._scale_recovery = ScaleRecoveryNetwork(
+                model_path=scale_model_path, device="cpu"
+            )
+            logger.info("Using learned scale recovery (ScaleNet): %s", scale_model_path)
+        else:
+            self._scale_recovery = GroundPlaneScaleRecovery(camera_height=camera_height)
+            logger.info(
+                "Using RANSAC ground-plane scale recovery (h=%.2fm)", camera_height
+            )
 
         # ── State ─────────────────────────────────────────────────────────────
         self._prev_frame: Optional[np.ndarray] = None
