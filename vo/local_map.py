@@ -164,23 +164,6 @@ class LocalMap:
         pts3d = (pts4d[:3] / pts4d[3]).T   # (M, 3)
 
         n_added = 0
-<<<<<<< HEAD
-        for i, X in enumerate(pts3d):
-            # Chirality check
-            if X[2] <= 0:
-                continue
-            X_cam2 = R @ X + t
-            if X_cam2[2] <= 0:
-                continue
-
-            # Reprojection error filter
-            reproj_dist = self._reprojection_error(X, pts_curr[i], R, t)
-            if reproj_dist > self.max_reproj_err:
-                continue
-
-            # Parallax check (angular)
-            if not self._sufficient_parallax(X, t_prev, t):
-=======
         # cv2.triangulatePoints(P_prev, P_curr, ...) returns points in the
         # *previous keyframe's camera frame*.  All downstream geometric
         # checks (chirality, reprojection, parallax) and the stored landmark
@@ -202,7 +185,6 @@ class LocalMap:
 
             # Parallax check (angular) — uses world-frame positions
             if not self._sufficient_parallax(X_world, t_prev, t):
->>>>>>> origin/master
                 continue
 
             # Find best matching descriptor
