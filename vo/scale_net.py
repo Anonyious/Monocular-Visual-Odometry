@@ -40,14 +40,14 @@ class ScaleNet(nn.Module):
     Parameters: ~0.5M (efficient, real-time)
     """
 
-    def __init__(self, input_channels: int = 6, device: str = "cpu"):
+    def __init__(self, input_channels: int = 4, device: str = "cpu"):
         super().__init__()
         self.device = device
 
         # Encoder: Progressive downsampling + feature extraction
-        # Input: (B, 6, 480, 640) → Output: (B, 128, 60, 80)
+        # Input: (B, 4, 192, 640) → Output: (B, 128, 24, 80)
         self.encoder = nn.Sequential(
-            # Block 1: 6 → 32 channels, stride 2
+            # Block 1: 4 → 32 channels, stride 2
             nn.Conv2d(input_channels, 32, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
@@ -62,8 +62,8 @@ class ScaleNet(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
 
-            # Block 4: 128 → 128 channels, stride 2
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=False),
+            # Block 4: 128 → 128 channels, stride 1
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
         )
@@ -78,7 +78,7 @@ class ScaleNet(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(64, 32),
             nn.ReLU(inplace=True),
-            nn.Linear(32, 2),  # [scale_logit, log_variance]
+            nn.Linear(32, 2),  # [scale, log_variance]
         )
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
