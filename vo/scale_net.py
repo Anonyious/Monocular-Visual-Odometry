@@ -6,6 +6,17 @@ This module implements a CNN-based approach to predict metric scale from
 consecutive video frames, replacing the ground-plane RANSAC heuristic.
 
 Week 3-4 deliverable for Path C2.
+
+FIXED BUGS (2026-09-12 Session 3)
+==================================
+1. Output range: sigmoid maps to [0.1, 5.0] instead of [0.5, 2.0] to cover
+   85% of KITTI ground truth scales (was losing 15.4% of samples).
+2. Input channels: 4 channels (prev_gray, curr_gray, flow_x, flow_y) instead
+   of 6 (was triplicating frame_prev as channels 0,1,2 → 50% redundant).
+3. Flow normalization: global stats (mean=10px, std=20px) instead of per-sample
+   max (was destroying magnitude cue — all flows normalized to same value).
+4. Resize aspect ratio: cv2.resize(..., (width, height)) fixed to preserve
+   KITTI's 3.3:1 landscape aspect (was flipping to 0.75:1 portrait).
 """
 
 from __future__ import annotations
