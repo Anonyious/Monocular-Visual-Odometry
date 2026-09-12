@@ -467,10 +467,6 @@ class VisualOdometry:
         # Update local map (triangulate new 3-D points)
         if pose is not None and self._keyframe_ids:
             prev_kf_id = self._keyframe_ids[-1]
-<<<<<<< HEAD
-            prev_kps = self._prev_kps if self._prev_kps is not None else np.empty((0, 2))
-            max_pts = min(500, len(prev_kps), len(kps))
-=======
             # Use *matched* point pairs from LK tracking, not arbitrary slices
             # of the detection arrays (which are not correspondences).
             if track is not None and hasattr(track, 'good_prev') and len(track.good_prev) > 0:
@@ -481,7 +477,6 @@ class VisualOdometry:
                 pts_prev = np.empty((0, 2))
                 pts_curr = np.empty((0, 2))
             max_pts = min(500, len(pts_prev), len(pts_curr))
->>>>>>> origin/master
             self._local_map.add_keyframe(
                 frame_id=frame_id,
                 R=self._current_R,
