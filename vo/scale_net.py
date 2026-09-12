@@ -268,26 +268,25 @@ class ScaleRecoveryNetwork:
         logger.info(f"Model loaded from {path}")
 
 
-# ─── Example Usage ───────────────────────────────────────────────────────
+# ─── Example Usage / Smoke Test ──────────────────────────────────────────
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    # Create model (randomly initialized for now)
+    # Create model (randomly initialized for smoke test)
     scale_net = ScaleRecoveryNetwork(device="cpu")
 
-    # Simulate video frames
-    print("Testing ScaleNet on synthetic frames...")
-    for i in range(5):
-        # Create random frames (simulate camera motion)
-        frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+    # Report parameter count
+    n_params = sum(p.numel() for p in scale_net.model.parameters())
+    print(f"ScaleNet parameters: {n_params:,} ({n_params / 1e6:.2f}M)")
 
+    # Simulate video frames at KITTI resolution (376x1241)
+    print("\nTesting ScaleNet on synthetic KITTI-sized frames...")
+    for i in range(5):
+        frame = np.random.randint(0, 255, (376, 1241, 3), dtype=np.uint8)
         scale, uncertainty = scale_net.update(frame)
         print(f"  Frame {i}: scale={scale:.3f} ± {uncertainty:.3f}")
 
-    print("\n✅ ScaleNet working correctly!")
-
-    # Save model
-    model_path = Path("models/scale_net_v1.pth")
-    scale_net.save(model_path)
-    print(f"✅ Model saved to {model_path}")
+    print("\n✅ ScaleNet forward pass working correctly!")
+    print("   To TRAIN the model, run: python scripts/train_scale_net.py")
+    print("   (This smoke test does NOT save — training writes the real weights.)")
