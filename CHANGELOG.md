@@ -392,10 +392,73 @@ pytest tests/ -q
 - Success criteria defined
 
 **Next Immediate Steps**:
-1. Create `scripts/prepare_scale_dataset.py`
-2. Implement PyTorch dataset loader
-3. Verify ScaleNet forward pass
-4. Begin training loop implementation
+1. ✅ Create `scripts/prepare_scale_dataset.py`
+2. ✅ Implement PyTorch dataset loader
+3. ✅ Verify ScaleNet forward pass
+4. ✅ Begin training loop implementation
+
+---
+
+### Phase 3: ScaleNet Bug Fixes + Training (00:10-01:00 UTC)
+
+**Status**: 🚀 In Progress (Training Running)
+
+**Work Done**:
+- Discovered and fixed 4 critical bugs in ScaleNet architecture
+- Created data preparation script
+- Generated training dataset (14,410 samples)
+- Created training script with proper loss function
+- Started model training on CPU
+
+**Critical Bugs Fixed in `vo/scale_net.py`**:
+
+| Bug | Issue | Fix | Impact |
+|-----|-------|-----|--------|
+| 1. Output range | `[0.5, 2.0]` clipped 15.4% of KITTI scales | Expanded to `[0.1, 5.0]` | Covers 85%+ of samples |
+| 2. Input redundancy | Channels 0,1,2 = identical frame_prev duplicates | Reduced 6→4 channels (prev, curr, flow_x, flow_y) | 33% smaller input, no redundancy |
+| 3. Flow normalization | Per-sample max destroyed magnitude cue | Global stats (÷20px std) preserves scale | Model can learn from flow magnitude |
+| 4. Aspect ratio | cv2.resize flipped 3.3:1 landscape to 0.75:1 | Fixed to (640,192) = 3.33:1 | Preserves KITTI geometry |
+
+**Data Preparation Results**:
+```
+Dataset: 14,410 frame pairs from 6 sequences
+  Sequence 01:  1,100 samples
+  Sequence 02:  4,660 samples  
+  Sequence 03:    800 samples (validation)
+  Sequence 05:  2,697 samples
+  Sequence 06:  1,100 samples
+  Sequence 08:  4,053 samples
+
+Scale distribution:
+  min    : 0.0105 m
+  median : 0.9787 m
+  mean   : 1.0231 m
+  max    : 2.7389 m
+```
+
+**Training Configuration**:
+- Model: ScaleNet (251,874 parameters = 0.25M)
+- Dataset split: 90% train (12,969), 10% val (1,441)
+- Batch size: 16 (CPU training)
+- Learning rate: 1e-3 with ReduceLROnPlateau
+- Loss: Negative log-likelihood with learned uncertainty
+- Early stopping: patience=5 epochs
+- Device: CPU (PyTorch 2.14.0)
+
+**Training Status**: Running in background (started 23:55 UTC)
+- Expected duration: 30-60 minutes for 15 epochs
+- Output: `models/scale_net_v1.pth`
+
+**Files Created**:
+- `scripts/prepare_scale_dataset.py` — Dataset extraction from KITTI ground truth
+- `scripts/train_scale_net.py` — PyTorch training loop with validation
+- `data/scale_dataset.jsonl` — 14,410 training samples (JSON Lines format)
+
+**Next Steps (After Training)**:
+1. Evaluate trained model on validation set
+2. Generate training loss curves
+3. Quick integration test with VO pipeline
+4. Update WEEK3_PLAN.md with results
 
 ---
 
