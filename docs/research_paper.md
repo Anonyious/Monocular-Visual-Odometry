@@ -331,11 +331,11 @@ The flow channels (2 and 3) are the primary information source; the frame channe
 We presented ScaleNet, a learned scale recovery module for monocular visual odometry, and integrated it into a complete VO pipeline with pose-graph optimization and loop closure. Our ablation study on the KITTI Odometry Benchmark compares learned scale recovery against traditional RANSAC ground-plane fitting across six sequences.
 
 Key findings:
-- ScaleNet achieves a validation MAE of 0.38 m on KITTI scale predictions (median GT scale: 0.98 m), with the model running at ~1.9 FPS on CPU.
-- On sequence 01 (complex urban geometry), ScaleNet reduces scale drift by 50× (65.7% → 1.3%), confirming that learned scale excels where ground-plane assumptions fail.
-- Mean scale drift across healthy sequences improves by 14.6% with learned scale (43.9% vs 59.8%).
-- RANSAC remains superior on simple road sequences (seq 02: 20.9% vs 82.0% drift), demonstrating that geometric priors are not obsolete.
-- Sequences 03, 05, and 08 exhibit pose graph divergence under both methods, indicating an independent optimisation bottleneck that limits the full benefit of either scale recovery approach.
+- ScaleNet achieves a validation MAE of 0.38 m on KITTI scale predictions (median GT scale: 0.98 m), with the model running at ~1.8 FPS on CPU.
+- Mean scale drift across healthy sequences (02, 03, 06) improves by 42.5% with learned scale (32.9% vs 57.3%), with the largest gains on sequence 02 (20.9% → 6.8%, a 3× improvement).
+- On sequence 03, ScaleNet improves both ATE (45.05 → 39.38 m) and drift (58.3% → 32.9%) simultaneously — the only sequence where this occurs.
+- RANSAC outperforms ScaleNet on sequence 02 in ATE (22.29 vs 45.20 m) but achieves worse drift (20.9% vs 6.8%), illustrating that Umeyama-aligned ATE can mask scale recovery deficiencies.
+- Sequences 01, 05, and 08 show extreme drift under both methods, indicating a pose graph optimisation bottleneck independent of scale recovery that warrants further investigation.
 
 The complete pipeline, including ScaleNet integration, ablation scripts, and evaluation tools, is open-sourced at https://github.com/Anonyious/Monocular-Visual-Odometry.
 

@@ -238,17 +238,21 @@ This project includes **ScaleNet** (v1), a lightweight CNN (~0.25M parameters) t
 | Seq | Method | ATE RMSE (m) | Scale Drift | Δ ATE vs Baseline |
 |-----|--------|-------------|-------------|-------------------|
 | 01 | RANSAC | 177.27 | 65.7% | — |
-| 01 | **ScaleNet** | 186.37 | **1.3%** | +5.1% |
+| 01 | **ScaleNet** | 175.91 | extreme* | −0.8% |
 | 02 | RANSAC | 22.29 | 20.9% | — |
-| 02 | **ScaleNet** | 52.24 | 82.0% | +134% |
+| 02 | **ScaleNet** | 45.20 | **6.8%** | +103% |
 | 03 | RANSAC | 45.05 | 58.3% | — |
-| 03 | **ScaleNet** | 36.46 | 1250.7%* | −19% |
+| 03 | **ScaleNet** | **39.38** | **32.9%** | **−12.6%** |
+| 05 | RANSAC | 52.27 | extreme* | — |
+| 05 | **ScaleNet** | 63.20 | extreme* | +21% |
 | 06 | RANSAC | 100.60 | 92.8% | — |
-| 06 | **ScaleNet** | 101.02 | **48.4%** | +0.4% |
-| — | **Mean (healthy seqs)** | **100.05** | **59.8%** | — |
-| — | **Mean (healthy seqs)** | **113.21** | **43.9%** | — |
+| 06 | **ScaleNet** | 100.60 | **59.1%** | 0% |
+| 08 | RANSAC | 73.05 | extreme* | — |
+| 08 | **ScaleNet** | **71.94** | extreme* | −1.5% |
+| — | **Mean (healthy seqs 02,03,06)** | **55.98** | **57.3%** | — |
+| — | **Mean (healthy seqs 02,03,06)** | **61.73** | **32.9%** | — |
 
-*Sequences 03, 05, 08 show pose graph divergence under both methods; see `docs/research_paper.md` for full analysis.
+*Extreme drift indicates pose graph divergence; see `docs/research_paper.md` for full analysis.
 
 **Training**: 14,410 samples from KITTI seqs 01/02/05/06/08, best epoch 6 (val MAE = 0.377 m).
 
