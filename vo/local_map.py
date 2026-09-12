@@ -326,11 +326,11 @@ class LocalMap:
         return float(np.linalg.norm(projected - obs))
 
     def _sufficient_parallax(
-        self, X: np.ndarray, t_prev: np.ndarray, t_curr: np.ndarray
+        self, X: np.ndarray, C_prev: np.ndarray, C_curr: np.ndarray
     ) -> bool:
-        """Check angular parallax between two camera positions."""
-        ray_prev = X - t_prev
-        ray_curr = X - t_curr
+        """Check angular parallax between rays from two camera centres."""
+        ray_prev = X - C_prev
+        ray_curr = X - C_curr
         cos_angle = np.dot(ray_prev, ray_curr) / (
             np.linalg.norm(ray_prev) * np.linalg.norm(ray_curr) + 1e-10
         )
