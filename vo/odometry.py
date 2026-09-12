@@ -450,6 +450,7 @@ class VisualOdometry:
         kps: np.ndarray,
         descs: np.ndarray,
         track=None,
+        pose_scale: float = 1.0,
     ) -> None:
         """Handle keyframe insertion: map update, graph edge, loop closure."""
 
