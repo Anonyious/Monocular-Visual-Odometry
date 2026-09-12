@@ -389,15 +389,12 @@ class PoseGraphOptimizer:
                 lam *= 10
                 continue
 
-<<<<<<< HEAD
-=======
             # Save old poses before applying step (for LM rejection)
             old_poses = {}
             for fid in node_ids:
                 if not graph._nodes[fid].fixed:
                     old_poses[fid] = graph._nodes[fid].T.copy()
 
->>>>>>> origin/master
             # Apply perturbation T_k ← T_k · exp(Δξ_k)
             for fid in node_ids:
                 if graph._nodes[fid].fixed:
