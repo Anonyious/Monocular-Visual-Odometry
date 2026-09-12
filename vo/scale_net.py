@@ -38,13 +38,14 @@ class ScaleNet(nn.Module):
     """
     Lightweight CNN for predicting metric scale from consecutive frames.
 
-    Input:  Two consecutive grayscale frames stacked: (B, 6, H, W)
-            - Channels 0-2: Frame N
-            - Channels 3-5: Frame N+1
-            (or precomputed optical flow in channels 3-5)
+    Input:  4-channel stack: (B, 4, H, W)
+            - Channel 0: previous frame (grayscale, normalized [0,1])
+            - Channel 1: current frame (grayscale, normalized [0,1])
+            - Channel 2: optical flow x-component (normalized by std)
+            - Channel 3: optical flow y-component (normalized by std)
 
     Output: Two predictions
-            - scale: predicted metric scale factor ∈ [0.5, 2.0]
+            - scale: predicted metric displacement (meters/frame) ∈ [0.1, 5.0]
             - log_var: predicted log-variance for uncertainty estimation
 
     Architecture: MobileNetV2-inspired encoder + FC decoder
