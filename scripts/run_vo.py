@@ -44,6 +44,10 @@ def parse_args():
     p.add_argument("--kf_track_ratio", type=float, default=0.80, help="Keyframe tracked-feature ratio floor (default: 0.80)")
     p.add_argument("--verbose", "-v", action="store_true", help="Verbose per-frame logging")
     p.add_argument("--log_level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    p.add_argument("--use_learned_scale", action="store_true",
+        help="Use ScaleNet (learned) instead of RANSAC ground-plane for scale recovery")
+    p.add_argument("--scale_model", default="models/scale_net_v1.pth",
+        help="Path to trained ScaleNet checkpoint (.pth, default: models/scale_net_v1.pth)")
     return p.parse_args()
 
 
@@ -92,6 +96,8 @@ def main():
         kf_track_ratio=args.kf_track_ratio,
         vocab_path=args.vocab,
         verbose=args.verbose,
+        use_learned_scale=args.use_learned_scale,
+        scale_model_path=args.scale_model if args.use_learned_scale else None,
     )
 
     # ── Optional Real-time Viewer ────────────────────────────────────────────
