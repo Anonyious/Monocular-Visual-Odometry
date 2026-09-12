@@ -205,17 +205,30 @@ class ScaleRecoveryNetwork:
         frame_prev: np.ndarray,
         frame_curr: np.ndarray,
         flow: np.ndarray,
-        target_size: Tuple[int, int] = (480, 640),
+        target_size: Tuple[int, int] = (640, 192),
     ) -> torch.Tensor:
         """
         Prepare input tensor for network.
 
-        Stack frames and flow into (6, H, W) format.
-        Resize to target size for efficiency.
-        Normalize and convert to torch tensor.
+        Stack frames and flow into (4, H, W) format:
+          Channel 0: prev_gray
+          Channel 1: curr_gray
+          Channel 2: flow_x (normalized)
+          Channel 3: flow_y (normalized)
+
+        Args:
+            frame_prev: Previous grayscale frame (H, W)
+            frame_curr: Current grayscale frame (H, W)
+            flow: Optical flow array (H, W, 2)
+            target_size: (width, height) - cv2.resize takes (W, H) order
+
+        Returns:
+            Tensor of shape (1, 4, H, W)
         """
-        # Resize frames
-        frame_prev = cv2.resize(frame_prev, target_size)
+        # FIXED BUG 4: cv2.resize takes (width, height), not (height, width)
+        # KITTI is 1241x376 (3.3:1 landscape), preserve aspect ratio
+        # Using (640, 192) = 3.33:1 - close to original 3.3:1
+        frame_prev = cv2.resize(frame_prev, target_size)  # (W, H) -> (640, 192)
         frame_curr = cv2.resize(frame_curr, target_size)
         flow = cv2.resize(flow, target_size)
 
@@ -223,22 +236,22 @@ class ScaleRecoveryNetwork:
         frame_prev = frame_prev.astype(np.float32) / 255.0
         frame_curr = frame_curr.astype(np.float32) / 255.0
 
-        # Normalize flow (typical magnitude: 0-10 pixels, clip to [-1, 1])
-        flow_mag = np.linalg.norm(flow, axis=-1, keepdims=True)
-        flow_norm = flow / (flow_mag.max() + 1e-6) * 0.5  # Normalize to ~[-0.5, 0.5]
+        # FIXED BUG 3: Use global flow statistics instead of per-sample max
+        # Flow magnitude is THE primary cue for displacement - do not destroy it
+        # KITTI typical flow: mean ~10px, std ~20px, max ~60px
+        flow_x = flow[:, :, 0] / 20.0  # Normalize by std, not per-sample max
+        flow_y = flow[:, :, 1] / 20.0
 
-        # Stack into 6-channel input
+        # Stack into 4-channel input (NOT 6 with redundant duplicates)
         x = np.stack([
-            frame_prev,           # Channel 0
-            frame_prev,           # Channel 1 (duplicate for RGB-like input)
-            frame_prev,           # Channel 2
-            frame_curr,           # Channel 3
-            flow_norm[:, :, 0],   # Channel 4 (flow_x)
-            flow_norm[:, :, 1],   # Channel 5 (flow_y)
-        ], axis=0)  # Shape: (6, H, W)
+            frame_prev,   # Channel 0: prev_gray
+            frame_curr,   # Channel 1: curr_gray
+            flow_x,       # Channel 2: flow_x (preserves magnitude cue!)
+            flow_y,       # Channel 3: flow_y
+        ], axis=0)  # Shape: (4, H, W) - not (6, H, W) with duplicates
 
         # Convert to tensor and add batch dimension
-        x_tensor = torch.from_numpy(x).float().unsqueeze(0)  # (1, 6, H, W)
+        x_tensor = torch.from_numpy(x).float().unsqueeze(0)  # (1, 4, H, W)
 
         return x_tensor.to(self.device)
 
