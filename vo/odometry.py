@@ -446,10 +446,7 @@ class VisualOdometry:
         pose: Optional[PoseEstimate],
         kps: np.ndarray,
         descs: np.ndarray,
-<<<<<<< HEAD
-=======
         track=None,
->>>>>>> origin/master
     ) -> None:
         """Handle keyframe insertion: map update, graph edge, loop closure."""
 
