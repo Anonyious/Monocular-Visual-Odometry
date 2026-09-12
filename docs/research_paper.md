@@ -332,15 +332,18 @@ The flow channels (2 and 3) are the primary information source; the frame channe
 
 ## 6. Conclusion
 
-We presented ScaleNet, a learned scale recovery module for monocular visual odometry, and integrated it into a complete VO pipeline with pose-graph optimization and loop closure. Our ablation study on the KITTI Odometry Benchmark compares learned scale recovery against traditional RANSAC ground-plane fitting.
+We presented ScaleNet, a learned scale recovery module for monocular visual odometry, and integrated it into a complete VO pipeline with pose-graph optimization and loop closure. Our ablation study on the KITTI Odometry Benchmark compares learned scale recovery against traditional RANSAC ground-plane fitting across six sequences.
 
 Key findings:
-- ScaleNet achieves a validation MAE of 0.38 m on KITTI scale predictions (median GT scale: 0.98 m).
-- The model is lightweight (0.25M parameters) and runs in real-time on CPU.
-- RANSAC ground-plane fitting shows strong performance on flat, planar scenes (seq 08: 8.2% drift) but degrades on complex urban terrain (seq 01: 23.4% drift).
-- Learned scale recovery is expected to provide more consistent performance across diverse scenes.
+- ScaleNet achieves a validation MAE of 0.38 m on KITTI scale predictions (median GT scale: 0.98 m), with the model running at ~1.9 FPS on CPU.
+- On sequence 01 (complex urban geometry), ScaleNet reduces scale drift by 50× (65.7% → 1.3%), confirming that learned scale excels where ground-plane assumptions fail.
+- Mean scale drift across healthy sequences improves by 14.6% with learned scale (43.9% vs 59.8%).
+- RANSAC remains superior on simple road sequences (seq 02: 20.9% vs 82.0% drift), demonstrating that geometric priors are not obsolete.
+- Sequences 03, 05, and 08 exhibit pose graph divergence under both methods, indicating an independent optimisation bottleneck that limits the full benefit of either scale recovery approach.
 
 The complete pipeline, including ScaleNet integration, ablation scripts, and evaluation tools, is open-sourced at https://github.com/Anonyious/Monocular-Visual-Odometry.
+
+**Future work** should address the pose graph stability issue (dense mapping, better keyframe selection) before the scale recovery contribution can be fully evaluated on long, complex sequences.
 
 ---
 
