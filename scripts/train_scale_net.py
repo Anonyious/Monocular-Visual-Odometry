@@ -137,17 +137,19 @@ class ScaleDataset(Dataset):
 
             break
 
-        # Compute optical flow
+        # Prepare input: resize FIRST, then compute flow
+        # MEMORY FIX: Farneback optical flow allocates large pyramid buffers.
+        # Computing it on full-resolution KITTI frames (376x1241) exhausted
+        # system memory. The network only consumes the resized flow anyway,
+        # so compute flow at target resolution (~4x less memory, much faster).
+        target_size = (640, 192)  # (width, height) for cv2.resize
+        frame_curr = cv2.resize(frame_curr, target_size)
+        frame_next = cv2.resize(frame_next, target_size)
+
         flow = cv2.calcOpticalFlowFarneback(
             frame_curr, frame_next,
             None, 0.5, 3, 15, 3, 5, 1.2, 0
         )
-
-        # Prepare input: resize and normalize
-        target_size = (640, 192)  # (width, height) for cv2.resize
-        frame_curr = cv2.resize(frame_curr, target_size)
-        frame_next = cv2.resize(frame_next, target_size)
-        flow = cv2.resize(flow, target_size)
 
         frame_curr = frame_curr.astype(np.float32) / 255.0
         frame_next = frame_next.astype(np.float32) / 255.0
