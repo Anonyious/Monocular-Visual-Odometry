@@ -208,6 +208,63 @@ Evaluated on standard KITTI odometry benchmark sequences using Sim(3) Umeyama al
 Scale is recovered using known camera height (1.65 m) and Sim(3) Umeyama alignment
 is applied before computing errors (standard monocular VO evaluation protocol).
 
+## ScaleNet: Learned Scale Recovery
+
+This project includes **ScaleNet** (v1), a lightweight CNN (~0.25M parameters) that predicts metric scale from consecutive image frames and optical flow, replacing the hand-crafted ground-plane RANSAC heuristic.
+
+### Architecture
+
+| Layer | Output Shape | Parameters |
+|-------|-------------|------------|
+| Conv2d(4→32, 3×3, stride=2) | (B, 32, 96, 320) | 1,152 |
+| BatchNorm2d + ReLU | — | 64 |
+| Conv2d(32→64, 3×3, stride=2) | (B, 64, 48, 160) | 18,496 |
+| BatchNorm2d + ReLU | — | 128 |
+| Conv2d(64→128, 3×3, stride=2) | (B, 128, 24, 80) | 73,856 |
+| BatchNorm2d + ReLU | — | 256 |
+| Conv2d(128→128, 3×3, stride=1) | (B, 128, 24, 80) | 147,584 |
+| BatchNorm2d + ReLU | — | 256 |
+| AdaptiveAvgPool2d(1×1) | (B, 128, 1, 1) | 0 |
+| Linear(128→64) + ReLU + Dropout(0.5) | (B, 64) | 8,256 |
+| Linear(64→32) + ReLU | (B, 32) | 2,080 |
+| Linear(32→2) | (B, 2) | 66 |
+| **Total** | | **251,874** |
+
+**Input**: 4 channels — `[prev_gray, curr_gray, flow_x, flow_y]` at 640×192 resolution.  
+**Output**: scale ∈ [0.1, 5.0] m + log-variance for uncertainty-aware loss.
+
+### Ablation Results (300 frames per sequence)
+
+| Seq | Method | ATE RMSE (m) | Scale Drift | Δ ATE vs Baseline |
+|-----|--------|-------------|-------------|-------------------|
+| 01 | RANSAC | 177.27 | 65.7% | — |
+| 01 | **ScaleNet** | 186.37 | **1.3%** | +5.1% |
+| 02 | RANSAC | 22.29 | 20.9% | — |
+| 02 | **ScaleNet** | 52.24 | 82.0% | +134% |
+| 03 | RANSAC | 45.05 | 58.3% | — |
+| 03 | **ScaleNet** | 36.46 | 1250.7%* | −19% |
+| 06 | RANSAC | 100.60 | 92.8% | — |
+| 06 | **ScaleNet** | 101.02 | **48.4%** | +0.4% |
+| — | **Mean (healthy seqs)** | **100.05** | **59.8%** | — |
+| — | **Mean (healthy seqs)** | **113.21** | **43.9%** | — |
+
+*Sequences 03, 05, 08 show pose graph divergence under both methods; see `docs/research_paper.md` for full analysis.
+
+**Training**: 14,410 samples from KITTI seqs 01/02/05/06/08, best epoch 6 (val MAE = 0.377 m).
+
+### Usage
+
+```bash
+# Baseline (RANSAC ground-plane)
+python scripts/run_vo.py --sequence 05 --data data/kitti --no_viewer
+
+# Learned scale (ScaleNet)
+python scripts/run_vo.py --sequence 05 --data data/kitti --no_viewer --use_learned_scale
+
+# Full ablation study
+python scripts/ablation_study.py --sequences 01 02 03 05 06 08 --quick
+```
+
 ## Dependencies
 
 | Library | Purpose |
