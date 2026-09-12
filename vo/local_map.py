@@ -164,18 +164,15 @@ class LocalMap:
         pts3d = (pts4d[:3] / pts4d[3]).T   # (M, 3)
 
         n_added = 0
-        # cv2.triangulatePoints(P_prev, P_curr, ...) returns points in the
-        # *previous keyframe's camera frame*.  All downstream geometric
-        # checks (chirality, reprojection, parallax) and the stored landmark
-        # position must be expressed in the **world frame**, so convert first.
-        R_prev_inv = R_prev.T
-        for i, X in enumerate(pts3d):
-            # Convert triangulated point (prev-camera frame) → world frame
-            X_world = R_prev_inv @ (X - t_prev)
-
-            # Chirality check (world → current camera frame)
+        # With absolute projection matrices K[R|t], cv2.triangulatePoints
+        # returns points in the same world frame used by those matrices.
+        C_prev = -R_prev.T @ t_prev
+        C_curr = -R.T @ t
+        for i, X_world in enumerate(pts3d):
+            # Chirality check (world → previous/current camera frame)
+            X_cam1 = R_prev @ X_world + t_prev
             X_cam2 = R @ X_world + t
-            if X_cam2[2] <= 0:
+            if X_cam1[2] <= 0 or X_cam2[2] <= 0:
                 continue
 
             # Reprojection error filter (world → current camera frame)
@@ -183,8 +180,8 @@ class LocalMap:
             if reproj_dist > self.max_reproj_err:
                 continue
 
-            # Parallax check (angular) — uses world-frame positions
-            if not self._sufficient_parallax(X_world, t_prev, t):
+            # Parallax check (angular) — rays originate at camera centres
+            if not self._sufficient_parallax(X_world, C_prev, C_curr):
                 continue
 
             # Find best matching descriptor
