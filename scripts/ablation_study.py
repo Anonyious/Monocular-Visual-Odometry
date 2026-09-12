@@ -217,23 +217,25 @@ def generate_latex_table(results: List[dict]) -> str:
     learned = [r for r in results if r["variant"] == "learned"]
     if baseline and learned:
         lines.append(r"    \midrule")
-        lines.append(
-            f"    \textbf{np.mean([len([r for r in results if r[\"sequence\"]==s]) for s in seqs]):.0f}"
-        )
-        # Actually compute means properly
-        lines[-1] = f"    \\textbf{{Mean}} & --- & "
-        lines[-1] += f"{np.mean([r['ate_rmse'] for r in baseline]):.3f} & "
-        lines[-1] += f"{np.mean([r['rpe_rmse'] for r in baseline]):.3f} & "
-        lines[-1] += f"{np.mean([r['scale_drift'] for r in baseline]):.1%} & "
-        lines[-1] += f"{np.mean([r['loop_closures'] for r in baseline]):.0f} & "
-        lines[-1] += f"{np.mean([r['fps'] for r in baseline]):.1f} \\\\"
+        b_ate = np.mean([r["ate_rmse"] for r in baseline])
+        b_rpe = np.mean([r["rpe_rmse"] for r in baseline])
+        b_drift = np.mean([r["scale_drift"] for r in baseline])
+        b_loops = np.mean([r["loop_closures"] for r in baseline])
+        b_fps = np.mean([r["fps"] for r in baseline])
+        l_ate = np.mean([r["ate_rmse"] for r in learned])
+        l_rpe = np.mean([r["rpe_rmse"] for r in learned])
+        l_drift = np.mean([r["scale_drift"] for r in learned])
+        l_loops = np.mean([r["loop_closures"] for r in learned])
+        l_fps = np.mean([r["fps"] for r in learned])
         lines.append(
             f"    \\textbf{{Mean}} & --- & "
-            f"{np.mean([r['ate_rmse'] for r in learned]):.3f} & "
-            f"{np.mean([r['rpe_rmse'] for r in learned]):.3f} & "
-            f"{np.mean([r['scale_drift'] for r in learned]):.1%} & "
-            f"{np.mean([r['loop_closures'] for r in learned]):.0f} & "
-            f"{np.mean([r['fps'] for r in learned]):.1f} \\\\"
+            f"{b_ate:.3f} & {b_rpe:.3f} & "
+            f"{b_drift:.1%} & {b_loops:.0f} & {b_fps:.1f} \\\\"
+        )
+        lines.append(
+            f"    \\textbf{{Mean}} & --- & "
+            f"{l_ate:.3f} & {l_rpe:.3f} & "
+            f"{l_drift:.1%} & {l_loops:.0f} & {l_fps:.1f} \\\\"
         )
     lines.append(r"    \hline")
     lines.append(r"  \end{tabular}")
