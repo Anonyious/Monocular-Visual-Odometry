@@ -142,8 +142,6 @@ class TestSE3:
         error = g.compute_edge_error(g._edges[0])
         np.testing.assert_allclose(error, np.zeros(6), atol=1e-8)
 
-<<<<<<< HEAD
-=======
     def test_pose_graph_edge_error_non_degenerate(self):
         """
         Edge error should be zero for a non-degenerate graph.
@@ -175,8 +173,6 @@ class TestSE3:
 
         error = g.compute_edge_error(g._edges[0])
         np.testing.assert_allclose(error, np.zeros(6), atol=1e-8)
-
->>>>>>> origin/master
 
 # ── Evaluation Metrics Tests ──────────────────────────────────────────────────
 
