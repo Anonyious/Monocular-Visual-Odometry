@@ -498,11 +498,7 @@ class VisualOdometry:
             )
             self._pose_graph.add_edge(
                 loop.query_id, loop.candidate_id,
-<<<<<<< HEAD
-                R_ij=loop.R, t_ij=loop.t,
-=======
                 R_ij=loop.R, t_ij=loop.t * self._scale_recovery.scale,
->>>>>>> origin/master
                 information=loop_information,
                 is_loop_closure=True,
             )
