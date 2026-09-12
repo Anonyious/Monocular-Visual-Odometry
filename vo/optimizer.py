@@ -401,12 +401,7 @@ class PoseGraphOptimizer:
                     continue
                 bi = fid_to_block[fid]
                 xi = delta_xi[6 * bi: 6 * bi + 6]
-<<<<<<< HEAD
-                T_old = graph._nodes[fid].T
-                T_new = T_old @ se3_exp(xi)
-=======
                 T_new = graph._nodes[fid].T @ se3_exp(xi)
->>>>>>> origin/master
                 graph._nodes[fid].T = T_new
 
             # LM: check if cost decreased and adjust λ
