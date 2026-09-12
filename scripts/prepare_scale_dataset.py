@@ -154,12 +154,12 @@ def extract_scale_labels(
             n_skipped_missing += 1
             continue
 
-        # Store as dict
+        # Store as dict (use absolute paths for reliability)
         entry = {
             "seq_id": seq_id,
             "frame_idx": i,
-            "frame_curr": str(frame_curr_path.relative_to(data_root.parent)),
-            "frame_next": str(frame_next_path.relative_to(data_root.parent)),
+            "frame_curr": str(frame_curr_path),
+            "frame_next": str(frame_next_path),
             "scale": scale,
             "pose_curr": T_curr[:3, :].flatten().tolist(),  # 12 floats (3x4 matrix)
             "pose_next": T_next[:3, :].flatten().tolist(),
