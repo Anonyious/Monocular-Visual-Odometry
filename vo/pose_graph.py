@@ -339,12 +339,8 @@ class PoseGraph:
         T_hat_ij = edge.T_ij
 
         # Prediction: what T_hat_ij should be given current poses
-<<<<<<< HEAD
-        T_ij_pred = se3_compose(se3_inverse(T_i), T_j)
-=======
         # T_ij_pred (i→j) = T_j @ T_i^{-1} (transform from frame i to frame j)
         T_ij_pred = se3_compose(T_j, se3_inverse(T_i))
->>>>>>> origin/master
         # Error in Lie algebra
         err_mat = se3_compose(se3_inverse(T_hat_ij), T_ij_pred)
         return se3_log(err_mat)
