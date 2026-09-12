@@ -97,10 +97,11 @@ class ScaleNet(nn.Module):
         Forward pass.
 
         Args:
-            x: Input tensor of shape (B, 6, H, W)
+            x: Input tensor of shape (B, 4, H, W)
+                Channels: [prev_gray, curr_gray, flow_x, flow_y]
 
         Returns:
-            scale: (B,) tensor with values in [0.5, 2.0]
+            scale: (B,) tensor with values in [0.1, 5.0]
             log_var: (B,) tensor with log-variance (for uncertainty)
         """
         # Encoder
@@ -117,9 +118,9 @@ class ScaleNet(nn.Module):
         scale_logit = outputs[:, 0]
         log_var = outputs[:, 1]
 
-        # Scale: map from logit space to [0.5, 2.0]
-        # Using sigmoid + linear scaling
-        scale = torch.sigmoid(scale_logit) * 1.5 + 0.5
+        # Scale: map from unbounded logit to [0.1, 5.0] meters per frame
+        # This covers ~85% of KITTI ground truth (was [0.5, 2.0] = 15% clipped)
+        scale = torch.sigmoid(scale_logit) * 4.9 + 0.1
 
         return scale, log_var
 
