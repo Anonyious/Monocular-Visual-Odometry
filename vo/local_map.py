@@ -196,11 +196,7 @@ class LocalMap:
 
             lm = Landmark(
                 point_id=self._next_id,
-<<<<<<< HEAD
-                position=X.copy(),
-=======
                 position=X_world.copy(),
->>>>>>> origin/master
                 descriptor=desc,
                 observations=[(prev_frame_id, i), (frame_id, i)],
             )
