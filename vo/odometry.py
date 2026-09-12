@@ -255,11 +255,7 @@ class VisualOdometry:
         if is_keyframe:
             if kps_curr is None:
                 kps_curr, descs_curr = self._frontend.detect(frame)
-<<<<<<< HEAD
-            self._process_keyframe(frame, frame_id, pose, kps_curr, descs_curr)
-=======
             self._process_keyframe(frame, frame_id, pose, kps_curr, descs_curr, track)
->>>>>>> origin/master
         else:
             self._frames_since_keyframe += 1
 
