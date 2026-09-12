@@ -265,7 +265,7 @@ class VisualOdometry:
             if pose is not None:
                 if self.use_learned_scale:
                     # Learned scale: predict from optical flow magnitude
-                    scale = self._scale_recovery.update(frame)
+                    scale, _ = self._scale_recovery.update(frame)
                     logger.debug(
                         "Frame %d: learned scale = %.4f", frame_id, scale
                     )
