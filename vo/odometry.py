@@ -255,7 +255,10 @@ class VisualOdometry:
         if is_keyframe:
             if kps_curr is None:
                 kps_curr, descs_curr = self._frontend.detect(frame)
-            self._process_keyframe(frame, frame_id, pose, kps_curr, descs_curr, track)
+            pose_scale = 1.0 if used_pnp else self._scale_recovery.scale
+            self._process_keyframe(
+                frame, frame_id, pose, kps_curr, descs_curr, track, pose_scale
+            )
         else:
             self._frames_since_keyframe += 1
 
