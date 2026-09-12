@@ -112,23 +112,30 @@ class ScaleDataset(Dataset):
             x: (4, H, W) tensor with [prev_gray, curr_gray, flow_x, flow_y]
             scale: (1,) tensor with ground truth scale
         """
-        entry = self.entries[idx]
+        # Skip missing entries - find next valid index
+        while True:
+            entry = self.entries[idx]
 
-        # Load frames (from disk or cache)
-        frame_curr_path = self.jsonl_path.parent.parent / entry["frame_curr"]
-        frame_next_path = self.jsonl_path.parent.parent / entry["frame_next"]
+            # Load frames (from disk or cache)
+            frame_curr_path = self.jsonl_path.parent.parent / entry["frame_curr"]
+            frame_next_path = self.jsonl_path.parent.parent / entry["frame_next"]
 
-        if self.cache_frames and idx in self.frame_cache:
-            frame_curr, frame_next = self.frame_cache[idx]
-        else:
-            frame_curr = cv2.imread(str(frame_curr_path), cv2.IMREAD_GRAYSCALE)
-            frame_next = cv2.imread(str(frame_next_path), cv2.IMREAD_GRAYSCALE)
+            if self.cache_frames and idx in self.frame_cache:
+                frame_curr, frame_next = self.frame_cache[idx]
+            else:
+                frame_curr = cv2.imread(str(frame_curr_path), cv2.IMREAD_GRAYSCALE)
+                frame_next = cv2.imread(str(frame_next_path), cv2.IMREAD_GRAYSCALE)
 
-            if frame_curr is None or frame_next is None:
-                raise FileNotFoundError(f"Cannot read frames at index {idx}")
+                if frame_curr is None or frame_next is None:
+                    # Frame missing, skip this entry and try next
+                    idx = (idx + 1) % len(self)
+                    logger.warning(f"Skipping missing frame at index {idx}")
+                    continue
 
-            if self.cache_frames:
-                self.frame_cache[idx] = (frame_curr, frame_next)
+                if self.cache_frames:
+                    self.frame_cache[idx] = (frame_curr, frame_next)
+
+            break
 
         # Compute optical flow
         flow = cv2.calcOpticalFlowFarneback(
