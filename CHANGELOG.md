@@ -298,6 +298,110 @@ results/05/
 **Auto-Sync**: ✅ Active
 
 ### Commits
+| Hash | Message | Date |
+|------|---------|------|
+| `f91350e` | Initial commit: Monocular Visual Odometry with KITTI support | 2026-09-11 |
+| `2e942cb` | Configure auto-sync hooks for GitHub | 2026-09-12 |
+
+---
+
+## 📅 Session 3: Path C2 — ScaleNet Training Setup (2026-09-12)
+
+### Phase 1: Merge Conflict Resolution (12:00-12:30 UTC)
+
+**Status**: ✅ Complete
+
+**Work Done**:
+- Resolved all merge conflicts in codebase from origin/master merge
+- Fixed 6 files with `<<<<<<<` conflict markers
+- Verified all 15 unit tests passing after merge
+
+**Files Fixed**:
+
+| File | Conflicts Resolved | Changes |
+|------|-------------------|---------|
+| `vo/odometry.py` | 9 sections | Merged trajectory tracking, PnP pose creation, loop detector reset |
+| `vo/pose_graph.py` | 2 sections | Fixed edge residual convention (T_j @ T_i⁻¹) |
+| `vo/local_map.py` | 2 sections | Fixed triangulation coordinate frame conversion |
+| `vo/optimizer.py` | 3 sections | Added LM step rejection with pose revert |
+| `vo/loop_closure.py` | 1 section | Added `_vocab_path` tracking |
+| `tests/test_core.py` | 1 section | Added non-degenerate pose graph test |
+
+**Key Fixes Applied**:
+
+1. **Trajectory Synchronization** (Bug 2 from BUG_FIX_REPORT.md)
+   - Added `_trajectory_frame_ids` tracking
+   - Implemented post-optimization trajectory sync (lines 524-527)
+   - Non-keyframes keep original estimates, keyframes updated from graph
+
+2. **PnP Pose Graph Integration** (Bug 1)
+   - Create `PoseEstimate` from PnP result
+   - Compute relative pose: `T_rel = T_curr @ T_prev⁻¹`
+   - Pass to `_process_keyframe` for proper edge creation
+
+3. **Loop Closure Scale** (Bug 6)
+   - Scale loop translation by current scale: `t_ij = loop.t * self._scale_recovery.scale`
+
+4. **LocalMap Coordinate Frames** (Bug 4)
+   - Compute camera centers: `C_prev = -R_prev.T @ t_prev`
+   - Check chirality in both frames
+   - Parallax computed between camera centers (not translation vectors)
+
+5. **Optimizer LM Rejection** 
+   - Save old poses before applying step
+   - Revert on cost increase
+   - Proper damping adjustment
+
+**Verification**:
+```bash
+pytest tests/ -q
+# Result: 15 passed in 3.77s ✅
+```
+
+**Commits**: Auto-synced via hooks
+
+---
+
+### Phase 2: Path C2 Week 3-4 Planning (12:30-13:00 UTC)
+
+**Status**: ✅ Complete
+
+**Work Done**:
+- Reviewed baseline benchmark results (6 sequences complete)
+- Created detailed Week 3-4 execution plan
+- Documented data preparation strategy
+- Outlined training pipeline architecture
+
+**Baseline Results Summary**:
+
+| Metric | Average | Best (Seq 08) | Worst (Seq 01) |
+|--------|---------|---------------|----------------|
+| ATE RMSE | 291.81 m | 73.71 m | 958.36 m |
+| RPE RMSE | 65.60 m | 2.09 m | 270.59 m |
+| Total Frames | 14,496 | 4,071 | 801 |
+
+**Target Improvements (Post-Training)**:
+- ATE RMSE: 50-60% reduction
+- Scale drift: <1% (from current 3-4%)
+- Maintain real-time: >20 FPS
+
+**Deliverables Created**:
+- `WEEK3_PLAN.md` — Complete execution roadmap
+- Training pipeline pseudocode
+- Dataset preparation strategy
+- Success criteria defined
+
+**Next Immediate Steps**:
+1. Create `scripts/prepare_scale_dataset.py`
+2. Implement PyTorch dataset loader
+3. Verify ScaleNet forward pass
+4. Begin training loop implementation
+
+---
+
+## 📂 Files Modified (Session 3)
+
+### Commits
 
 | Hash | Message | Date | Files |
 |------|---------|------|-------|
