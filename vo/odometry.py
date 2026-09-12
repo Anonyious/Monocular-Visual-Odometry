@@ -247,10 +247,7 @@ class VisualOdometry:
         # Record pose regardless
         T = self._current_T()
         self._trajectory.append(T.copy())
-<<<<<<< HEAD
-=======
         self._trajectory_frame_ids.append(frame_id)
->>>>>>> origin/master
 
         # ── Keyframe Decision ─────────────────────────────────────────────────
         is_keyframe = self._should_insert_keyframe(n_tracked, track)
