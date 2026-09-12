@@ -515,15 +515,12 @@ class VisualOdometry:
                 self._n_keyframes,
             )
             self._pose_graph = self._optimizer.optimize(self._pose_graph)
-<<<<<<< HEAD
-=======
             # Sync trajectory with optimized graph poses for all keyframes.
             # Non-keyframes keep their original estimates (they are not graph nodes).
             for idx, fid in enumerate(self._trajectory_frame_ids):
                 if fid in self._pose_graph._nodes:
                     node = self._pose_graph.get_node(fid)
                     self._trajectory[idx] = node.T.copy()
->>>>>>> origin/master
             # Sync current pose from the (now optimised) graph
             if frame_id in self._pose_graph._nodes:
                 node = self._pose_graph.get_node(frame_id)
