@@ -145,10 +145,7 @@ class VisualOdometry:
 
         # Trajectory
         self._trajectory: List[np.ndarray] = []   # list of 4×4 SE(3) poses
-<<<<<<< HEAD
-=======
         self._trajectory_frame_ids: List[int] = []  # frame_id for each entry
->>>>>>> origin/master
         self._keyframe_ids: List[int] = []
 
         # Per-frame stats
