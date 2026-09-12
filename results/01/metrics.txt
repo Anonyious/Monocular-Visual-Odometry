@@ -1,0 +1,6 @@
+Sequence:  01
+Frames:    1101
+ATE RMSE:  958.3634 m
+ATE Mean:  869.6298 m
+RPE RMSE:  59.2185 m
+RPE Mean:  19.2324 m

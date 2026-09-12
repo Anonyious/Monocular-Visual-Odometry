@@ -310,6 +310,12 @@ class LoopClosureDetector:
         self.min_score = min_score
         self.min_inliers = min_inliers
         self.min_frames_apart = min_frames_apart
+<<<<<<< HEAD
+=======
+        self._vocab_path = vocab_path
+        # Track whether vocabulary was loaded from path for reset purposes
+        self._loaded_from_path = vocab_path is not None
+>>>>>>> origin/master
 
         self._bow = BagOfWords(n_words=n_words)
         self._keyframe_descriptors: Dict[int, np.ndarray] = {}

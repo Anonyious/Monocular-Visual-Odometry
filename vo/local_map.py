@@ -164,6 +164,7 @@ class LocalMap:
         pts3d = (pts4d[:3] / pts4d[3]).T   # (M, 3)
 
         n_added = 0
+<<<<<<< HEAD
         for i, X in enumerate(pts3d):
             # Chirality check
             if X[2] <= 0:
@@ -179,6 +180,29 @@ class LocalMap:
 
             # Parallax check (angular)
             if not self._sufficient_parallax(X, t_prev, t):
+=======
+        # cv2.triangulatePoints(P_prev, P_curr, ...) returns points in the
+        # *previous keyframe's camera frame*.  All downstream geometric
+        # checks (chirality, reprojection, parallax) and the stored landmark
+        # position must be expressed in the **world frame**, so convert first.
+        R_prev_inv = R_prev.T
+        for i, X in enumerate(pts3d):
+            # Convert triangulated point (prev-camera frame) → world frame
+            X_world = R_prev_inv @ (X - t_prev)
+
+            # Chirality check (world → current camera frame)
+            X_cam2 = R @ X_world + t
+            if X_cam2[2] <= 0:
+                continue
+
+            # Reprojection error filter (world → current camera frame)
+            reproj_dist = self._reprojection_error(X_world, pts_curr[i], R, t)
+            if reproj_dist > self.max_reproj_err:
+                continue
+
+            # Parallax check (angular) — uses world-frame positions
+            if not self._sufficient_parallax(X_world, t_prev, t):
+>>>>>>> origin/master
                 continue
 
             # Find best matching descriptor
@@ -190,7 +214,11 @@ class LocalMap:
 
             lm = Landmark(
                 point_id=self._next_id,
+<<<<<<< HEAD
                 position=X.copy(),
+=======
+                position=X_world.copy(),
+>>>>>>> origin/master
                 descriptor=desc,
                 observations=[(prev_frame_id, i), (frame_id, i)],
             )

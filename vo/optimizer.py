@@ -389,14 +389,27 @@ class PoseGraphOptimizer:
                 lam *= 10
                 continue
 
+<<<<<<< HEAD
+=======
+            # Save old poses before applying step (for LM rejection)
+            old_poses = {}
+            for fid in node_ids:
+                if not graph._nodes[fid].fixed:
+                    old_poses[fid] = graph._nodes[fid].T.copy()
+
+>>>>>>> origin/master
             # Apply perturbation T_k ← T_k · exp(Δξ_k)
             for fid in node_ids:
                 if graph._nodes[fid].fixed:
                     continue
                 bi = fid_to_block[fid]
                 xi = delta_xi[6 * bi: 6 * bi + 6]
+<<<<<<< HEAD
                 T_old = graph._nodes[fid].T
                 T_new = T_old @ se3_exp(xi)
+=======
+                T_new = graph._nodes[fid].T @ se3_exp(xi)
+>>>>>>> origin/master
                 graph._nodes[fid].T = T_new
 
             # LM: check if cost decreased and adjust λ
@@ -404,6 +417,12 @@ class PoseGraphOptimizer:
             if new_cost < total_cost:
                 lam = max(lam / 3, 1e-10)
             else:
+<<<<<<< HEAD
+=======
+                # Reject step: revert poses and increase damping
+                for fid, T_old in old_poses.items():
+                    graph._nodes[fid].T = T_old
+>>>>>>> origin/master
                 lam = min(lam * 3, 1e6)
 
             if np.linalg.norm(delta_xi) < 1e-8:

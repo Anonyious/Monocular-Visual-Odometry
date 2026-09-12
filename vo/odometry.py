@@ -77,7 +77,11 @@ from .local_map import LocalMap
 from .loop_closure import LoopClosureDetector
 from .motion import MotionEstimator, PoseEstimate
 from .optimizer import PoseGraphOptimizer
+<<<<<<< HEAD
 from .pose_graph import PoseGraph
+=======
+from .pose_graph import PoseGraph, se3_compose, se3_inverse
+>>>>>>> origin/master
 from .scale_recovery import GroundPlaneScaleRecovery
 from .evaluation.metrics import save_trajectory_kitti
 
@@ -145,6 +149,10 @@ class VisualOdometry:
 
         # Trajectory
         self._trajectory: List[np.ndarray] = []   # list of 4×4 SE(3) poses
+<<<<<<< HEAD
+=======
+        self._trajectory_frame_ids: List[int] = []  # frame_id for each entry
+>>>>>>> origin/master
         self._keyframe_ids: List[int] = []
 
         # Per-frame stats
@@ -208,6 +216,26 @@ class VisualOdometry:
                     logger.debug(
                         "Frame %d: PnP pose (%d inliers)", frame_id, n_pnp_inliers
                     )
+<<<<<<< HEAD
+=======
+                    # Create PoseEstimate for pose graph edge from absolute pose
+                    if self._keyframe_ids:
+                        prev_kf_id = self._keyframe_ids[-1]
+                        prev_node = self._pose_graph.get_node(prev_kf_id)
+                        T_prev = prev_node.T
+                        T_curr = np.eye(4)
+                        T_curr[:3, :3] = R_pnp
+                        T_curr[:3, 3] = t_pnp
+                        T_rel = se3_compose(se3_inverse(T_prev), T_curr)
+                        pose = PoseEstimate(
+                            R=T_rel[:3, :3],
+                            t=T_rel[:3, 3],
+                            E=np.eye(3),
+                            inlier_mask=inlier_mask_pnp,
+                            n_inliers=n_pnp_inliers,
+                            n_total=n_pnp_inliers,
+                        )
+>>>>>>> origin/master
 
         # 2. Fallback to Essential Matrix if PnP unavailable
         if not used_pnp:
@@ -229,6 +257,10 @@ class VisualOdometry:
         # Record pose regardless
         T = self._current_T()
         self._trajectory.append(T.copy())
+<<<<<<< HEAD
+=======
+        self._trajectory_frame_ids.append(frame_id)
+>>>>>>> origin/master
 
         # ── Keyframe Decision ─────────────────────────────────────────────────
         is_keyframe = self._should_insert_keyframe(n_tracked, track)
@@ -236,7 +268,11 @@ class VisualOdometry:
         if is_keyframe:
             if kps_curr is None:
                 kps_curr, descs_curr = self._frontend.detect(frame)
+<<<<<<< HEAD
             self._process_keyframe(frame, frame_id, pose, kps_curr, descs_curr)
+=======
+            self._process_keyframe(frame, frame_id, pose, kps_curr, descs_curr, track)
+>>>>>>> origin/master
         else:
             self._frames_since_keyframe += 1
 
@@ -325,6 +361,10 @@ class VisualOdometry:
         self._current_R = np.eye(3)
         self._current_t = np.zeros(3)
         self._trajectory = []
+<<<<<<< HEAD
+=======
+        self._trajectory_frame_ids = []
+>>>>>>> origin/master
         self._keyframe_ids = []
         self._stats = []
         self._frames_since_keyframe = 0
@@ -335,6 +375,24 @@ class VisualOdometry:
         self._scale_recovery = GroundPlaneScaleRecovery(
             camera_height=self.camera_height
         )
+<<<<<<< HEAD
+=======
+        # Reset loop detector so BoW database / vocabulary / score history
+        # do not persist across sequences on the same VO instance.
+        self._loop_detector = LoopClosureDetector(
+            self.camera,
+            n_words=self._loop_detector.n_words,
+            min_score=self._loop_detector.min_score,
+            min_inliers=self._loop_detector.min_inliers,
+            min_frames_apart=self._loop_detector.min_frames_apart,
+            vocab_path=getattr(self._loop_detector, '_vocab_path', None),
+        )
+        # Reset loop detector so BoW database / vocabulary / score history
+        # don't persist across sequences when re-running on the same instance.
+        self._loop_detector = LoopClosureDetector(
+            self.camera, vocab_path=self._loop_detector._vocab_path
+        )
+>>>>>>> origin/master
 
     # ── Private Helpers ───────────────────────────────────────────────────────
 
@@ -350,6 +408,10 @@ class VisualOdometry:
         # First node is the fixed world origin
         self._pose_graph.add_node(frame_id, np.eye(3), np.zeros(3), fixed=True)
         self._trajectory.append(self._current_T().copy())
+<<<<<<< HEAD
+=======
+        self._trajectory_frame_ids.append(frame_id)
+>>>>>>> origin/master
         self._keyframe_ids.append(frame_id)
         self._n_keyframes = 1
 
@@ -414,6 +476,10 @@ class VisualOdometry:
         pose: Optional[PoseEstimate],
         kps: np.ndarray,
         descs: np.ndarray,
+<<<<<<< HEAD
+=======
+        track=None,
+>>>>>>> origin/master
     ) -> None:
         """Handle keyframe insertion: map update, graph edge, loop closure."""
 
@@ -434,8 +500,21 @@ class VisualOdometry:
         # Update local map (triangulate new 3-D points)
         if pose is not None and self._keyframe_ids:
             prev_kf_id = self._keyframe_ids[-1]
+<<<<<<< HEAD
             prev_kps = self._prev_kps if self._prev_kps is not None else np.empty((0, 2))
             max_pts = min(500, len(prev_kps), len(kps))
+=======
+            # Use *matched* point pairs from LK tracking, not arbitrary slices
+            # of the detection arrays (which are not correspondences).
+            if track is not None and hasattr(track, 'good_prev') and len(track.good_prev) > 0:
+                pts_prev = track.good_prev
+                pts_curr = track.good_curr
+            else:
+                # Fallback: no matched points available
+                pts_prev = np.empty((0, 2))
+                pts_curr = np.empty((0, 2))
+            max_pts = min(500, len(pts_prev), len(pts_curr))
+>>>>>>> origin/master
             self._local_map.add_keyframe(
                 frame_id=frame_id,
                 R=self._current_R,
@@ -443,8 +522,13 @@ class VisualOdometry:
                 keypoints=kps,
                 descriptors=descs,
                 prev_frame_id=prev_kf_id,
+<<<<<<< HEAD
                 pts_prev=prev_kps[:max_pts],
                 pts_curr=kps[:max_pts],
+=======
+                pts_prev=pts_prev[:max_pts],
+                pts_curr=pts_curr[:max_pts],
+>>>>>>> origin/master
             )
 
         # Loop closure check
@@ -457,7 +541,11 @@ class VisualOdometry:
             )
             self._pose_graph.add_edge(
                 loop.query_id, loop.candidate_id,
+<<<<<<< HEAD
                 R_ij=loop.R, t_ij=loop.t,
+=======
+                R_ij=loop.R, t_ij=loop.t * self._scale_recovery.scale,
+>>>>>>> origin/master
                 information=loop_information,
                 is_loop_closure=True,
             )
@@ -474,6 +562,15 @@ class VisualOdometry:
                 self._n_keyframes,
             )
             self._pose_graph = self._optimizer.optimize(self._pose_graph)
+<<<<<<< HEAD
+=======
+            # Sync trajectory with optimized graph poses for all keyframes.
+            # Non-keyframes keep their original estimates (they are not graph nodes).
+            for idx, fid in enumerate(self._trajectory_frame_ids):
+                if fid in self._pose_graph._nodes:
+                    node = self._pose_graph.get_node(fid)
+                    self._trajectory[idx] = node.T.copy()
+>>>>>>> origin/master
             # Sync current pose from the (now optimised) graph
             if frame_id in self._pose_graph._nodes:
                 node = self._pose_graph.get_node(frame_id)

@@ -142,6 +142,41 @@ class TestSE3:
         error = g.compute_edge_error(g._edges[0])
         np.testing.assert_allclose(error, np.zeros(6), atol=1e-8)
 
+<<<<<<< HEAD
+=======
+    def test_pose_graph_edge_error_non_degenerate(self):
+        """
+        Edge error should be zero for a non-degenerate graph.
+
+        This test uses a rotated first node to ensure the i→j convention
+        is correct (the old implementation only passed for the degenerate
+        case where node 0 was at identity).
+        """
+        g = PoseGraph()
+        R0 = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=float)
+        t0 = np.array([0.5, 0.0, 0.0])
+        g.add_node(0, R0, t0, fixed=True)
+
+        R1 = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]], dtype=float)
+        t1 = np.array([1.0, 0.5, 0.0])
+        g.add_node(1, R1, t1)
+
+        # Relative transform from node 0 to node 1 (i→j):
+        # T_ij = T_j @ T_i^{-1}  (maps camera_i → world → camera_j)
+        T0 = np.eye(4)
+        T0[:3, :3] = R0
+        T0[:3, 3] = t0
+        T1 = np.eye(4)
+        T1[:3, :3] = R1
+        T1[:3, 3] = t1
+        T_ij_expected = T1 @ np.linalg.inv(T0)
+
+        g.add_edge(0, 1, R_ij=T_ij_expected[:3, :3], t_ij=T_ij_expected[:3, 3])
+
+        error = g.compute_edge_error(g._edges[0])
+        np.testing.assert_allclose(error, np.zeros(6), atol=1e-8)
+
+>>>>>>> origin/master
 
 # ── Evaluation Metrics Tests ──────────────────────────────────────────────────
 

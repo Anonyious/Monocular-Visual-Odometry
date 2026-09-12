@@ -1,0 +1,6 @@
+Sequence:  06
+Frames:    1101
+ATE RMSE:  109.2562 m
+ATE Mean:  103.1305 m
+RPE RMSE:  16.6280 m
+RPE Mean:  3.1655 m

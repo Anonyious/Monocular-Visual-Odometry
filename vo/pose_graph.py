@@ -323,7 +323,13 @@ class PoseGraph:
         """
         Compute the 6-vector residual for edge (i→j).
 
+<<<<<<< HEAD
         e_ij = log(T̂_ij⁻¹ · T_j⁻¹ · T_i)
+=======
+        e_ij = log(T̂_ij⁻¹ · T_ij_pred)
+
+        where T_ij_pred = T_j · T_i⁻¹ is the predicted relative pose from i to j.
+>>>>>>> origin/master
 
         This is zero when the current graph poses are perfectly consistent
         with the measured relative transform T̂_ij.
@@ -337,7 +343,12 @@ class PoseGraph:
         T_hat_ij = edge.T_ij
 
         # Prediction: what T_hat_ij should be given current poses
+<<<<<<< HEAD
         T_ij_pred = se3_compose(se3_inverse(T_i), T_j)
+=======
+        # T_ij_pred (i→j) = T_j @ T_i^{-1} (transform from frame i to frame j)
+        T_ij_pred = se3_compose(T_j, se3_inverse(T_i))
+>>>>>>> origin/master
         # Error in Lie algebra
         err_mat = se3_compose(se3_inverse(T_hat_ij), T_ij_pred)
         return se3_log(err_mat)
