@@ -355,24 +355,17 @@ class VisualOdometry:
         self._scale_recovery = GroundPlaneScaleRecovery(
             camera_height=self.camera_height
         )
-<<<<<<< HEAD
-=======
         # Reset loop detector so BoW database / vocabulary / score history
         # do not persist across sequences on the same VO instance.
+        old_loop_detector = self._loop_detector
         self._loop_detector = LoopClosureDetector(
             self.camera,
-            n_words=self._loop_detector.n_words,
-            min_score=self._loop_detector.min_score,
-            min_inliers=self._loop_detector.min_inliers,
-            min_frames_apart=self._loop_detector.min_frames_apart,
-            vocab_path=getattr(self._loop_detector, '_vocab_path', None),
+            n_words=old_loop_detector._bow.n_words,
+            min_score=old_loop_detector.min_score,
+            min_inliers=old_loop_detector.min_inliers,
+            min_frames_apart=old_loop_detector.min_frames_apart,
+            vocab_path=getattr(old_loop_detector, '_vocab_path', None),
         )
-        # Reset loop detector so BoW database / vocabulary / score history
-        # don't persist across sequences when re-running on the same instance.
-        self._loop_detector = LoopClosureDetector(
-            self.camera, vocab_path=self._loop_detector._vocab_path
-        )
->>>>>>> origin/master
 
     # ── Private Helpers ───────────────────────────────────────────────────────
 
