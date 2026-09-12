@@ -344,10 +344,7 @@ class VisualOdometry:
         self._current_R = np.eye(3)
         self._current_t = np.zeros(3)
         self._trajectory = []
-<<<<<<< HEAD
-=======
         self._trajectory_frame_ids = []
->>>>>>> origin/master
         self._keyframe_ids = []
         self._stats = []
         self._frames_since_keyframe = 0
