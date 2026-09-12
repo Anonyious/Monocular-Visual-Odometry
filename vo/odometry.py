@@ -381,10 +381,7 @@ class VisualOdometry:
         # First node is the fixed world origin
         self._pose_graph.add_node(frame_id, np.eye(3), np.zeros(3), fixed=True)
         self._trajectory.append(self._current_T().copy())
-<<<<<<< HEAD
-=======
         self._trajectory_frame_ids.append(frame_id)
->>>>>>> origin/master
         self._keyframe_ids.append(frame_id)
         self._n_keyframes = 1
 
