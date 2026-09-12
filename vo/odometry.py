@@ -463,7 +463,7 @@ class VisualOdometry:
             self._pose_graph.add_edge(
                 prev_kf_id, frame_id,
                 R_ij=pose.R,
-                t_ij=pose.t * self._scale_recovery.scale,
+                t_ij=pose.t * pose_scale,
                 # Use the covariance-derived information matrix from PoseEstimate
                 information=pose.information,
             )
