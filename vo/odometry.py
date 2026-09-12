@@ -155,9 +155,11 @@ class VisualOdometry:
             self._scale_recovery = ScaleRecoveryNetwork(
                 model_path=scale_model_path, device="cpu"
             )
+            self._scale_model_path = scale_model_path
             logger.info("Using learned scale recovery (ScaleNet): %s", scale_model_path)
         else:
             self._scale_recovery = GroundPlaneScaleRecovery(camera_height=camera_height)
+            self._scale_model_path = None
             logger.info(
                 "Using RANSAC ground-plane scale recovery (h=%.2fm)", camera_height
             )
