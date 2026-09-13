@@ -61,6 +61,99 @@
 
 ---
 
+## 📅 Session 3: Ablation Study & Divergence Analysis (2026-09-13)
+
+### Phase 1: Divergence Detection & Bug Fixes
+
+**Status**: ✅ Complete
+
+#### 🔧 Drift Metric Fix
+
+**Problem**: The ablation script's `scale_drift` computation was accidentally changed to use cumulative path length instead of endpoint displacement during a prior session. This produced inflated drift values even on healthy sequences (e.g., seq 02 baseline showed 97.5% instead of the correct 20.9%).
+
+**Root cause**: The endpoint-based metric (`|est_endpoint_dist / gt_endpoint_dist - 1|`) is the standard for monocular VO evaluation. Cumulative path length overcounts on wiggly trajectories because it sums per-frame arc lengths rather than measuring net displacement.
+
+**Fix**: Reverted to endpoint-distance ratio in `scripts/ablation_study.py` (line 92–94):
+```python
+est_dist = float(np.linalg.norm(est_pos[-1] - est_pos[0])) if len(est_pos) > 1 else 0.0
+gt_dist = float(np.linalg.norm(gt_pos[-1] - gt_pos[0])) if len(gt_pos) > 1 else 0.0
+scale_drift = abs(est_dist / gt_dist - 1.0) if gt_dist > 0 else float("nan")
+scale_drift = max(-0.99, min(float(scale_drift), 5.0))  # cap at 500 %
+```
+
+**Verification**: Seq 02 baseline now correctly reports 20.9% drift (matching original results).
+
+#### 🔧 JSON Serialization Bug
+
+**Problem**: Adding a `diverged` boolean field caused `TypeError: Object of type bool is not JSON serializable`.
+
+**Root cause**: The expression `est_max_dist > 10 * gt_max_dist` returns a NumPy `bool_`, not a Python `bool`, which `json.dump` cannot serialise.
+
+**Fix**: Wrapped with `bool()` constructor:
+```python
+diverged = bool(est_max_dist > 10 * gt_max_dist) if gt_max_dist > 0 else False
+```
+
+#### 🔧 Divergence Detection
+
+Added automatic divergence detection to flag trajectories that leave the GT bounds by more than 10×:
+```python
+gt_max_dist = float(np.max(np.linalg.norm(gt_pos - gt_pos[0], axis=1))) if len(gt_pos) > 0 else 0.0
+est_max_dist = float(np.max(np.linalg.norm(est_pos - est_pos[0], axis=1))) if len(est_pos) > 0 else 0.0
+diverged = bool(est_max_dist > 10 * gt_max_dist) if gt_max_dist > 0 else False
+```
+
+Log output now shows `[DIVERGED]` marker for flagged runs.
+
+### Phase 2: Full Ablation Results (300 frames per sequence)
+
+**Status**: ✅ Complete — all 12 runs finished
+
+| Seq | Method | ATE (m) | Drift | Quality | Loops | FPS |
+|-----|--------|---------|-------|---------|-------|-----|
+| 01 | RANSAC | 177.27 | 65.7% | diverged | 9 | 2.7 |
+| 01 | ScaleNet | 175.91 | 500.0% | diverged | 6 | 2.4 |
+| 02 | RANSAC | 22.29 | 20.9% | **stable** | 0 | 4.6 |
+| 02 | ScaleNet | 45.20 | **6.8%** | **stable** | 0 | 2.5 |
+| 03 | RANSAC | 45.05 | 58.3% | **stable** | 2 | 4.9 |
+| 03 | ScaleNet | **39.38** | **32.9%** | **stable** | 1 | 2.7 |
+| 05 | RANSAC | 52.27 | 500.0% | diverged | 5 | 3.0 |
+| 05 | ScaleNet | 63.20 | 500.0% | diverged | 1 | 2.4 |
+| 06 | RANSAC | 100.60 | 92.8% | diverged | 14 | 2.5 |
+| 06 | ScaleNet | 100.60 | **59.1%** | diverged | 11 | 2.0 |
+| 08 | RANSAC | 73.05 | 500.0% | diverged | 0 | 4.5 |
+| 08 | ScaleNet | **71.94** | 500.0% | diverged | 0 | 2.6 |
+
+**Stable sequences (02, 03) mean**: RANSAC ATE 33.67 m / drift 39.6% · ScaleNet ATE 42.29 m / drift **19.9%** (−49.8%)
+
+### Key Findings
+
+1. **Pose-graph divergence is the dominant failure mode.** Sequences 01, 05, 06, and 08 all diverge in at least one method. On seqs 01, 05, and 08 both methods diverge; on seq 06 both also diverge despite reasonable endpoint drift. Only seqs 02 and 03 are stable for both methods.
+
+2. **Root cause: scipy Gauss–Newton instability on loop closure.** Trace logs show cost values exploding to infinity (e.g., `88158358277894177169905859690496.00`) with zero improvement — the optimiser cannot reduce the residual, indicating numerical instability in the pose-graph update step. This is independent of scale recovery method.
+
+3. **ScaleNet improves drift on stable sequences by 49.8%.** Mean drift drops from 39.6% (RANSAC) to 19.9% (ScaleNet) on seqs 02 and 03. Seq 02 sees a 3× improvement (20.9% → 6.8%); seq 03 sees a 44% relative reduction (58.3% → 32.9%).
+
+4. **Seq 03 is the only sequence where ScaleNet improves both ATE and drift.** ATE: 45.05 → 39.38 m, drift: 58.3% → 32.9%.
+
+5. **ScaleNet does not prevent divergence.** Since divergence occurs during pose-graph optimisation — after scale has been applied — the learned scale model cannot mitigate it. This is a pipeline-level bottleneck.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `scripts/ablation_study.py` | Reverted drift to endpoint metric; added divergence detection; fixed numpy bool serialization |
+| `docs/research_paper.md` | Updated Table 1 (seq 01/06/08 now diverged); updated Table 2 (stable = 02,03 only); corrected improvement figures to 49.8%; updated conclusion and §4.4 |
+| `README.md` | Updated ablation table; removed duplicate Training line; updated mean summary |
+| `results/ablation/results.json` | Regenerated with corrected metrics (12 entries) |
+| `CHANGELOG.md` | Added Session 3 section |
+
+### Commits
+
+All changes auto-synced to GitHub via Claude Code hooks.
+
+---
+
 ## 📅 Session 2: GitHub Setup & KITTI Evaluation (2026-09-12)
 
 ### Phase 1: Infrastructure Setup (04:00-04:15 UTC)
@@ -693,9 +786,9 @@ git push -u origin master
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2026-09-12 04:35 UTC  
-**Repository**: https://github.com/Anonyious/Monocular-Visual-Odometry  
+**Document Version**: 1.1
+**Last Updated**: 2026-09-13 22:20 UTC
+**Repository**: https://github.com/Anonyious/Monocular-Visual-Odometry
 **Auto-Sync**: ✅ Active
 
 ---
