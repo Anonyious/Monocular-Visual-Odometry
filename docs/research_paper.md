@@ -291,7 +291,7 @@ The two metrics can diverge: on sequence 02, RANSAC achieves lower ATE (22.29 m 
 
 #### 4.4.3 Loop Closure Interaction
 
-Loop closures provide global constraints that can partially correct scale drift. Sequence 06 shows the most loop closures (14 baseline, 11 learned), and both methods achieve identical ATE (100.60 m) — but ScaleNet halves the drift (59.1% vs 92.8%). This demonstrates that learned scale provides more consistent local estimates, even when global loop closure constraints dominate the final ATE.
+Loop closures provide global constraints that can partially correct scale drift. Sequence 06 shows the most loop closures (14 baseline, 11 learned), but both methods diverge despite this — the loop-closure-induced optimisation triggers pose-graph instability that no scale method can prevent. This confirms the divergence is a pipeline-level bottleneck, not a scale-recovery problem.
 
 ---
 
@@ -332,10 +332,10 @@ We presented ScaleNet, a learned scale recovery module for monocular visual odom
 
 Key findings:
 - ScaleNet achieves a validation MAE of 0.38 m on KITTI scale predictions (median GT scale: 0.98 m), with the model running at ~1.8 FPS on CPU.
-- Mean scale drift across healthy sequences (02, 03, 06) improves by 42.5% with learned scale (32.9% vs 57.3%), with the largest gains on sequence 02 (20.9% → 6.8%, a 3× improvement).
+- Mean scale drift across stable sequences (02, 03) improves by 49.8% with learned scale (19.9% vs 39.6%), with the largest gains on sequence 02 (20.9% → 6.8%, a 3× improvement).
 - On sequence 03, ScaleNet improves both ATE (45.05 → 39.38 m) and drift (58.3% → 32.9%) simultaneously — the only sequence where this occurs.
 - RANSAC outperforms ScaleNet on sequence 02 in ATE (22.29 vs 45.20 m) but achieves worse drift (20.9% vs 6.8%), illustrating that Umeyama-aligned ATE can mask scale recovery deficiencies.
-- Sequences 01, 05, and 08 expose a **pose-graph optimisation bottleneck**: loop-closure-triggered Gauss–Newton optimisation produces numerically unstable updates on these longer urban sequences, causing trajectory divergence in one or both methods. This is a pipeline-level issue independent of scale recovery.
+- Sequences 01, 05, 06, and 08 expose a **pose-graph optimisation bottleneck**: loop-closure-triggered Gauss–Newton optimisation produces numerically unstable updates on these longer urban sequences, causing trajectory divergence in one or both methods. This is a pipeline-level issue independent of scale recovery. Only sequences 02 and 03 are stable for both methods.
 - Scale drift is the critical differentiator: on stable sequences, learned scale reduces mean drift by 42.5% while ATE remains comparable.
 
 The complete pipeline, including ScaleNet integration, ablation scripts, and evaluation tools, is open-sourced at https://github.com/Anonyious/Monocular-Visual-Odometry.
