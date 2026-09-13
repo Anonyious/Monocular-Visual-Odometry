@@ -301,6 +301,13 @@ Four of six sequences (01, 05, 06, 08) exhibit trajectory divergence in \textit{
 
 Divergence is triggered by loop-closure-induced pose-graph optimisation instability. When a new loop edge is added, the Gauss--Newton optimiser produces numerically unstable updates that send keyframe poses to infinity. Sequence~06, with the most loop closures (14 for RANSAC, 11 for ScaleNet), exemplifies this: the loop-closure constraints conflict with the accumulated drift, causing the optimizer to diverge.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{paper_figures/ablation_statistics.png}
+    \caption{Statistical analysis of the ablation study: ATE vs.\ scale drift trade-off, divergence pie chart, and performance summary. Sequences 02 and 03 are stable (green); sequences 01, 05, 06, 08 diverge (orange) under both methods.}
+    \label{fig:ablation_stats}
+\end{figure}
+
 % ============================================================================
 % 6. Discussion
 % ============================================================================
