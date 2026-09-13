@@ -223,9 +223,7 @@ def create_statistics_table(output_dir):
     for whisker in box['whiskers']:
         whisker.set_color('black')
         whisker.set_linewidth(1.5)
-    for cap in box['caps']:
-        cap.set_edgecolor('black')
-        cap.set_linewidth(1.5)
+    # Note: caps are Line2D objects, not patches, so they don't have set_edgecolor
 
     ax2.set_ylabel('Scale Drift (%)', fontsize=12)
     ax2.set_title('Scale Drift Distribution by Method', fontsize=14, fontweight='bold')
