@@ -2,11 +2,14 @@
 """
 Research Paper Visualization Generator for Monocular Visual Odometry Ablation Study
 
-Generates comprehensive visualizations for the research paper including:
-- 2D trajectory comparisons
-- Statistical summaries
-- ATE/RPE analysis
-- Divergence analysis
+This script generates comprehensive visualizations for the research paper including:
+- 2D trajectory comparisons for all sequences
+- Statistical analysis plots
+- ATE vs Scale Drift trade-off analysis
+- Divergence detection visualizations
+- Complete results tables
+
+All visualizations are saved to the paper_figures/ directory.
 """
 
 import matplotlib.pyplot as plt
@@ -14,7 +17,11 @@ import numpy as np
 import json
 import os
 from pathlib import Path
-import matplotlib.cm as cm
+from matplotlib.table import Table
+
+# Set non-interactive backend for headless environments
+import matplotlib
+matplotlib.use('Agg')
 
 def load_trajectory(path):
     """Load KITTI trajectory from file"""
@@ -31,219 +38,112 @@ def extract_positions(poses):
     """Extract x,y,z positions from poses"""
     return np.array([p[9:12] for p in poses])
 
-def main():
-    """Main function to generate all visualizations"""
-    output_dir = Path('paper_figures')
-    output_dir.mkdir(exist_ok=True)
-
-    print("=" * 80)
-    print("MONOCULAR VISUAL ODOMETRY ABLATION STUDY - VISUALIZATIONS")
-    print("=" * 80)
+def create_trajectory_comparisons(output_dir):
+    """Create 2D trajectory comparison plots for all sequences"""
 
     # Load all results
     with open('results/ablation/results.json') as f:
         results = json.load(f)
 
-    # Create comprehensive figure
-    fig = plt.figure(figsize=(20, 12))
+    # Create figure with 2 rows, 3 columns (6 subplots total)
+    fig, axes = plt.subplots(2, 3, figsize=(24, 18))
     fig.suptitle('Monocular Visual Odometry: RANSAC vs. ScaleNet Ablation Study',
                  fontsize=20, fontweight='bold', y=0.98)
 
-    # Color scheme
+    # Professional color scheme
     colors = {
-        'ground_truth': '#2C3E50',
-        'ransac': '#3498DB',
-        'scalenet': '#E74C3C',
-        'stable': '#27AE60',
-        'diverged': '#E67E22',
+        'ground_truth': '#2C3E50',      # Dark blue-gray for ground truth
+        'ransac': '#3498DB',           # Bright blue for RANSAC baseline
+        'scalenet': '#E74C3C',         # Red for ScaleNet learned
+        'stable': '#27AE60',           # Green for stable trajectories
+        'diverged': '#E67E22',         # Orange for diverged trajectories
     }
 
     seqs = ['01', '02', '03', '05', '06', '08']
 
-    # === SUBPLOT 1: 2D Trajectories ===
-    ax1 = plt.subplot(3, 2, 1)
-    ax1.set_title('2D Trajectories on XY Plane', fontsize=14, fontweight='bold')
-    ax1.set_xlabel('X (m)', fontsize=12)
-    ax1.set_ylabel('Y (m)', fontsize=12)
-    ax1.grid(True, alpha=0.3)
-    ax1.axis('equal')
-
-    # Plot ground truth and ablation trajectories
+    # Plot 2D trajectories for each sequence
     for idx, seq_id in enumerate(seqs):
-        # Plot ground truth
+        ax = axes[idx // 3, idx % 3]
+        ax.set_title(f'Sequence {seq_id}', fontsize=14, fontweight='bold')
+        ax.set_xlabel('X (m)', fontsize=12)
+        ax.set_ylabel('Y (m)', fontsize=12)
+        ax.grid(True, alpha=0.3)
+        ax.axis('equal')
+
+        # Plot ground truth trajectory if available
         gt_path = f'results/{seq_id}/trajectory.txt'
         if os.path.exists(gt_path):
             try:
-                gt_data = np.loadtxt(gt_path)
-                gt_pos = gt_data[:, 9:12]
-                ax1.plot(gt_pos[:, 0], gt_pos[:, 1],
-                        color=colors['ground_truth'], linewidth=1.5, alpha=0.6,
-                        label=f'Seq {seq_id}')
-            except:
+                gt_poses = load_trajectory(gt_path)
+                gt_pos = extract_positions(gt_poses)
+                ax.plot(gt_pos[:, 0], gt_pos[:, 1],
+                       color=colors['ground_truth'], linewidth=2.5, alpha=0.8,
+                       label=f'Sequence {seq_id} GT')
+            except Exception as e:
                 pass
 
-        # Plot ablation methods
+        # Plot both RANSAC and ScaleNet trajectories
         seq_results = [r for r in results if r['sequence'] == seq_id]
         for r in seq_results:
             path = f'results/ablation/{r["variant"]}/{seq_id}/trajectory.txt'
             if os.path.exists(path):
                 try:
-                    traj_data = np.loadtxt(path)
-                    traj_pos = traj_data[:, 9:12]
+                    traj_data = load_trajectory(path)
+                    traj_pos = extract_positions(traj_data)
+
+                    # Color based on method and stability
                     color = colors['ransac'] if r['variant'] == 'baseline' else colors['scalenet']
                     label = 'RANSAC' if r['variant'] == 'baseline' else 'ScaleNet'
-                    ax1.plot(traj_pos[:, 0], traj_pos[:, 1],
-                             color=color, linewidth=2, alpha=0.7, label=label)
-                except:
+
+                    # Add divergence indicator
+                    status = 'stable' if not r['diverged'] else 'diverged'
+
+                    ax.plot(traj_pos[:, 0], traj_pos[:, 1],
+                           color=color, linewidth=2.5, alpha=0.8,
+                           label=f'{label} ({status})')
+                except Exception as e:
                     pass
 
-    # === SUBPLOT 2: Scale Drift Bar Chart ===
-    ax2 = plt.subplot(3, 2, 2)
+        # Add legend only for top row to avoid clutter
+        if idx < 3:
+            ax.legend(loc='upper right', fontsize=10, framealpha=0.9)
 
-    x_pos = np.arange(len(seqs))
-    width = 0.35
-
-    # Get average drift for each sequence
-    seq_drifts = {}
-    for seq_id in seqs:
-        base_drift = next(r['scale_drift'] for r in results if r['sequence'] == seq_id and r['variant'] == 'baseline')
-        learned_drift = next(r['scale_drift'] for r in results if r['sequence'] == seq_id and r['variant'] == 'learned')
-        seq_drifts[seq_id] = {'RANSAC': base_drift, 'ScaleNet': learned_drift}
-
-    # Create bars
-    bars1 = ax2.bar(x_pos - width/2, [seq_drifts[s]['RANSAC'] for s in seqs],
-                   width, label='RANSAC', color=colors['ransac'], alpha=0.8)
-    bars2 = ax2.bar(x_pos + width/2, [seq_drifts[s]['ScaleNet'] for s in seqs],
-                   width, label='ScaleNet', color=colors['scalenet'], alpha=0.8)
-
-    ax2.set_xlabel('Sequence', fontsize=12)
-    ax2.set_ylabel('Scale Drift (%)', fontsize=12)
-    ax2.set_title('Scale Drift Comparison by Sequence', fontsize=14, fontweight='bold')
-    ax2.set_xticks(x_pos)
-    ax2.set_xticklabels(seqs)
-    ax2.legend()
-    ax2.grid(True, alpha=0.3, axis='y')
-
-    # === SUBPLOT 3: ATE vs Scale Drift Scatter ===
-    ax3 = plt.subplot(3, 2, 3)
-
-    # Separate stable and diverged results
-    stable_results = [r for r in results if not r['diverged']]
-    diverged_results = [r for r in results if r['diverged']]
-
-    # Plot stable points
-    for method_color, method_label in [(colors['ransac'], 'RANSAC'), (colors['scalenet'], 'ScaleNet')]:
-        method_results = [r for r in stable_results if r['variant'] == ('baseline' if method_label == 'RANSAC' else 'learned')]
-        ax3.scatter([r['scale_drift'] for r in method_results],
-                   [r['ate_rmse'] for r in method_results],
-                   c=method_color, s=150, alpha=0.8, label=method_label,
-                   edgecolors='black', linewidth=1)
-
-    # Plot diverged points
-    ax3.scatter([r['scale_drift'] for r in diverged_results],
-               [r['ate_rmse'] for r in diverged_results],
-               c=colors['diverged'], s=100, alpha=0.6, label='Diverged', marker='^',
-               edgecolors='black', linewidth=1)
-
-    ax3.set_xlabel('Scale Drift (%)', fontsize=12)
-    ax3.set_ylabel('ATE RMSE (m)', fontsize=12)
-    ax3.set_title('ATE vs Scale Drift Trade-off', fontsize=14, fontweight='bold')
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-
-    # === SUBPLOT 4: ATE Comparison ===
-    ax4 = plt.subplot(3, 2, 4)
-
-    ate_data = []
-    for seq_id in seqs:
-        for variant in ['baseline', 'learned']:
-            r = next(res for res in results if res['sequence'] == seq_id and res['variant'] == variant)
-            ate_data.append({'seq': seq_id, 'method': variant, 'ate': r['ate_rmse'], 'stable': not r['diverged']})
-
-    x = np.arange(len(ate_data))
-    width = 0.35
-
-    for i, d in enumerate(ate_data):
-        color = colors['stable'] if d['stable'] else colors['diverged']
-        ax4.bar(i - width/2 if d['method'] == 'baseline' else i + width/2,
-                d['ate'], width, label=d['method'].upper() if i < 4 else '',
-                color=color, alpha=0.8)
-
-    ax4.set_xlabel('Sequence and Method', fontsize=12)
-    ax4.set_ylabel('ATE RMSE (m)', fontsize=12)
-    ax4.set_title('ATE Comparison by Sequence and Method', fontsize=14, fontweight='bold')
-    ax4.set_xticks(x)
-    ax4.set_xticklabels([f"{d['seq']} {d['method'].upper()}" for d in ate_data], rotation=45)
-    ax4.legend(['RANSAC', 'ScaleNet'])
-    ax4.grid(True, alpha=0.3, axis='y')
-
-    # === SUBPLOT 5: Loop Closure Analysis ===
-    ax5 = plt.subplot(3, 2, 5)
-
-    loop_data = []
-    for seq_id in seqs:
-        for variant in ['baseline', 'learned']:
-            r = next(res for res in results if res['sequence'] == seq_id and res['variant'] == variant)
-            loop_data.append({'seq': seq_id, 'method': variant, 'loops': r['loop_closures'], 'stable': not r['diverged']})
-
-    x = np.arange(len(loop_data))
-    for i, d in enumerate(loop_data):
-        color = colors['stable'] if d['stable'] else colors['diverged']
-        ax5.bar(i, d['loops'], color=color, alpha=0.8, label=d['seq'] if i < len(seqs) else '')
-
-    ax5.set_xlabel('Sequence and Method', fontsize=12)
-    ax5.set_ylabel('Loop Closures', fontsize=12)
-    ax5.set_title('Loop Closure Analysis', fontsize=14, fontweight='bold')
-    ax5.set_xticks(x)
-    ax5.set_xticklabels([f"{d['seq']} {d['method'].upper()}" for d in loop_data], rotation=45)
-    ax5.legend()
-    ax5.grid(True, alpha=0.3, axis='y')
-
-    # === SUBPLOT 6: Summary Statistics ===
-    ax6 = plt.subplot(3, 2, 6)
-    ax6.axis('tight')
-    ax6.axis('off')
-
-    # Create summary text
-    summary_text = '''KEY FINDINGS:
-
-• ScaleNet improves mean drift by 49.8% on stable sequences
-• Seq 03: only sequence where ScaleNet improves both ATE and drift
-• Divergence is pipeline-level bottleneck (not scale-recovery)
-• RANSAC: better ATE on seq 02, worse drift
-• ScaleNet: worse ATE on seq 02, better drift
-• 8/12 sequences diverge (01,05,06,08 both methods)
-• 4/12 sequences stable (02,03 both methods)'''
-
-    # Create text box
-    props = dict(boxstyle='round', facecolor='lightblue', alpha=0.8, edgecolor='#3498DB')
-    ax6.text(0.5, 0.5, summary_text, ha='center', va='center', fontsize=11,
-             fontfamily='monospace', bbox=props, transform=ax6.transAxes)
-
-    ax6.set_title('Research Summary', fontsize=14, fontweight='bold', pad=20)
-
-    # Adjust layout
+    # Adjust layout and save
     plt.tight_layout()
+    output_path = output_dir / 'trajectory_comparisons.png'
+    fig.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    print(f"✓ Saved trajectory comparisons to {output_path}")
 
-    # Save comprehensive figure
-    fig.savefig(output_dir / 'trajectory_comparisons.png',
-               dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
-    print(f"✓ Saved comprehensive visualization to {output_dir / 'trajectory_comparisons.png'}")
+    return fig
 
-    # Create statistics table
-    from matplotlib.table import Table
+def create_statistics_table(output_dir):
+    """Create detailed statistics table and analysis"""
 
+    # Load results
+    with open('results/ablation/results.json') as f:
+        results = json.load(f)
+
+    # Create figure for statistics
     stats_fig = plt.figure(figsize=(20, 12))
-    stats_fig.suptitle('Ablation Study: Complete Results Table', fontsize=18, fontweight='bold', y=0.98)
+    stats_fig.suptitle('Ablation Study: Complete Results and Analysis',
+                      fontsize=18, fontweight='bold', y=0.98)
 
-    # Create table
-    ax = stats_fig.add_subplot(111)
-    ax.axis('tight')
-    ax.axis('off')
+    # === SUBPLOT 1: Detailed Results Table ===
+    ax1 = plt.subplot(2, 2, 1)
+    ax1.axis('tight')
+    ax1.axis('off')
 
-    table_data = [['Seq', 'Method', 'ATE RMSE (m)', 'Scale Drift (%)', 'Loops', 'FPS', 'Status']]
-    for r in sorted(results, key=lambda x: (x['sequence'], x['variant'])):
+    # Prepare table data
+    table_data = [['Seq', 'Method', 'ATE RMSE (m)', 'Scale Drift (%)',
+                   'Loop Closures', 'FPS', 'Trajectory Status']]
+
+    # Sort results for consistent ordering
+    sorted_results = sorted(results, key=lambda x: (x['sequence'], x['variant']))
+
+    for r in sorted_results:
         status = 'STABLE' if not r['diverged'] else 'DIVERGED'
+        color = '#27AE60' if not r['diverged'] else '#E74C3C'
+
         table_data.append([
             r['sequence'],
             r['variant'].upper(),
@@ -254,26 +154,129 @@ def main():
             status
         ])
 
-    table = Table(ax, cellText=table_data[1:], colWidths=[0.12, 0.15, 0.12, 0.12, 0.08, 0.10, 0.22],
-                 bbox=[0, 0, 1, 1], cellLoc='center')
+    # Create table
+    table = Table(ax1, cellText=table_data[1:], colWidths=[0.12, 0.15, 0.12, 0.12,
+                        0.12, 0.10, 0.16], bbox=[0, 0, 1, 1], cellLoc='center')
 
     # Style header
     for i in range(len(table_data[0])):
         cell = table[(0, i)]
         cell.set_facecolor('#3498DB')
-        cell.set_text_props(weight='bold', color='white')
+        cell.set_text_props(weight='bold', color='white', size=11)
 
-    # Style status rows
+    # Style status cells
     for i in range(1, len(table_data)):
         status = table_data[i][6]
+        cell = table[(i, 6)]
         if status == 'STABLE':
-            table[(i, 6)].set_facecolor('#D5F5E3')
+            cell.set_facecolor('#D5F5E3')
         else:
-            table[(i, 6)].set_facecolor('#FADBD8')
+            cell.set_facecolor('#FADBD8')
 
-    stats_fig.savefig(output_dir / 'ablation_statistics.png',
-                     dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
-    print(f"✓ Saved statistics table to {output_dir / 'ablation_statistics.png'}")
+    ax1.set_title('Complete Ablation Results (300 frames per sequence)',
+                 fontsize=14, fontweight='bold', pad=20)
+
+    # === SUBPLOT 2: Scale Drift Distribution ===
+    ax2 = plt.subplot(2, 2, 2)
+
+    # Group by method
+    baseline_drifts = [r['scale_drift'] for r in sorted_results if r['variant'] == 'baseline']
+    learned_drifts = [r['scale_drift'] for r in sorted_results if r['variant'] == 'learned']
+
+    # Create box plots
+    data_to_plot = [baseline_drifts, learned_drifts]
+    box = ax2.boxplot(data_to_plot, labels=['RANSAC', 'ScaleNet'], patch_artist=True)
+
+    # Style boxes
+    colors_box = [colors['ransac'], colors['scalenet']]
+    for patch, color in zip(box['boxes'], colors_box):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.8)
+
+    # Style whiskers and caps
+    for whisker in box['whiskers']:
+        whisker.set_color('black')
+        whisker.set_linewidth(1.5)
+    for cap in box['caps']:
+        cap.set_facecolor('black')
+        cap.set_linewidth(1.5)
+
+    ax2.set_ylabel('Scale Drift (%)', fontsize=12)
+    ax2.set_title('Scale Drift Distribution by Method', fontsize=14, fontweight='bold')
+    ax2.grid(True, alpha=0.3, axis='y')
+
+    # Add mean values
+    ax2.text(1.5, np.max(np.concatenate([baseline_drifts, learned_drifts])) * 1.05,
+            f'Mean RANSAC: {np.mean(baseline_drifts):.1f}%\nMean ScaleNet: {np.mean(learned_drifts):.1f}%',
+            fontsize=10, bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
+
+    # === SUBPLOT 3: ATE vs Scale Drift Trade-off ===
+    ax3 = plt.subplot(2, 2, 3)
+
+    # Separate stable and diverged
+    stable_results = [r for r in sorted_results if not r['diverged']]
+    diverged_results = [r for r in sorted_results if r['diverged']]
+
+    # Plot stable points
+    ax3.scatter([r['scale_drift'] for r in stable_results],
+               [r['ate_rmse'] for r in stable_results],
+               c=colors['stable'], s=150, alpha=0.8, label='Stable', edgecolors='black', linewidth=1)
+
+    # Plot diverged points
+    ax3.scatter([r['scale_drift'] for r in diverged_results],
+               [r['ate_rmse'] for r in diverged_results],
+               c=colors['diverged'], s=100, alpha=0.6, label='Diverged', marker='^',
+               edgecolors='black', linewidth=1)
+
+    ax3.set_xlabel('Scale Drift (%)', fontsize=12)
+    ax3.set_ylabel('ATE RMSE (m)', fontsize=12)
+    ax3.set_title('ATE vs Scale Drift Analysis', fontsize=14, fontweight='bold')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+
+    # === SUBPLOT 4: Key Research Findings ===
+    ax4 = plt.subplot(2, 2, 4)
+    ax4.axis('tight')
+    ax4.axis('off')
+
+    # Create findings text
+    findings_text = '''🔬 KEY RESEARCH FINDINGS:
+
+• 8/12 sequences diverge (01, 05, 06, 08 for both methods)
+• Root cause: pose-graph optimization instability on loop closure
+• Independent of scale recovery method (RANSAC also diverges)
+• Only sequences 02, 03 remain stable for both methods
+• ScaleNet improves mean drift by 49.8% on stable sequences
+• Seq 03: only sequence where ScaleNet improves both ATE and drift
+• RANSAC: better ATE on seq 02, worse drift
+• ScaleNet: worse ATE on seq 02, better drift
+• Divergence: pipeline bottleneck, not scale-recovery issue'''
+
+    # Create text box
+    props = dict(boxstyle='round', facecolor='lightblue', alpha=0.8, edgecolor='#3498DB')
+    ax4.text(0.5, 0.5, findings_text, ha='center', va='center', fontsize=10,
+             fontfamily='monospace', bbox=props, transform=ax4.transAxes)
+
+    ax4.set_title('Research Summary and Conclusions', fontsize=14, fontweight='bold', pad=20)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Save statistics figure
+    output_path = output_dir / 'ablation_statistics.png'
+    stats_fig.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    print(f"✓ Saved statistics table to {output_path}")
+
+    return stats_fig
+
+def create_latex_table(output_dir):
+    """Generate LaTeX table for paper"""
+
+    with open('results/ablation/results.json') as f:
+        results = json.load(f)
+
+    # Sort by sequence and variant
+    sorted_results = sorted(results, key=lambda x: (x['sequence'], x['variant']))
 
     # Create LaTeX table
     latex_content = '''\\begin{table}[h]
@@ -282,11 +285,11 @@ def main():
 \\label{tab:ablation}
 \\begin{tabular}{crrrrr}
 \\hline
-\\textbf{Seq} & \\textbf{ATE RMSE (m)} & \\textbf{Scale Drift} & \\textbf{Loops} & \\textbf{FPS} & \\textbf{Status} \\\\
+\\textbf{Seq} & \\textbf{ATE RMSE (m)} & \\textbf{Scale Drift} & \\textbf{Loop Closures} & \\textbf{FPS} & \\textbf{Status} \\\\
 \\hline
 '''
 
-    for r in sorted(results, key=lambda x: (x['sequence'], x['variant'])):
+    for r in sorted_results:
         status = 'stable' if not r['diverged'] else 'diverged'
         latex_content += f"{r['sequence']} & {r['ate_rmse']:.2f} & {r['scale_drift']:.1f}% & {r['loop_closures']} & {r['fps']:.1f} & {status} \\\\\n"
 
@@ -294,34 +297,73 @@ def main():
 \\end{tabular}
 \\end{table}'''
 
+    # Save LaTeX table
     with open(output_dir / 'ablation_table.tex', 'w') as f:
         f.write(latex_content)
 
     print(f"✓ Saved LaTeX table to {output_dir / 'ablation_table.tex'}")
 
-    # Create summary
-    print("\n" + "=" * 80)
-    print("RESEARCH VISUALIZATION GENERATION COMPLETE")
+    # Also create simplified table for README
+    with open(output_dir / 'README_ablation_table.md', 'w') as f:
+        f.write('# Ablation Study Results\n\n')
+        f.write('| Seq | Method | ATE RMSE (m) | Scale Drift (%) | Status |\n')
+        f.write('|-----|--------|-------------|-----------------|--------|\n')
+        for r in sorted_results:
+            status = 'stable' if not r['diverged'] else 'diverged'
+            f.write(f'| {r["sequence"]} | {r["variant"].upper()} | {r["ate_rmse"]:.2f} | {r["scale_drift"]:.1f}% | {status} |\n')
+
+    print(f"✓ Saved Markdown table to {output_dir / 'README_ablation_table.md'}")
+
+def main():
+    """Main function to generate all visualizations"""
+    output_dir = Path('paper_figures')
+    output_dir.mkdir(exist_ok=True)
+
     print("=" * 80)
+    print("MONOCULAR VISUAL ODOMETRY ABLATION STUDY - VISUALIZATION GENERATOR")
+    print("=" * 80)
+    print("\n📊 Generating visualizations for research paper...")
+
+    print("\n🎨 Step 1: Creating trajectory comparisons...")
+    fig1 = create_trajectory_comparisons(output_dir)
+
+    print("\n📈 Step 2: Generating statistics and analysis...")
+    fig2 = create_statistics_table(output_dir)
+
+    print("\n📝 Step 3: Creating LaTeX tables...")
+    create_latex_table(output_dir)
+
+    print("\n" + "=" * 80)
+    print("✅ VISUALIZATION GENERATION COMPLETE")
+    print("=" * 80)
+
     print(f"\n📁 Files generated in {output_dir.absolute()}:")
-    print("   - trajectory_comparisons.png (20x12 inch, 300 DPI)")
-    print("   - ablation_statistics.png (20x12 inch, 300 DPI)")
-    print("   - ablations_table.tex (LaTeX format)")
+    for file in sorted(output_dir.glob('*')):
+        if file.is_file():
+            size_kb = file.stat().st_size / 1024
+            print(f"   • {file.name:35s} ({size_kb:6.1f} KB)")
 
-    print("\n📊 Key findings captured:")
-    print("   • ScaleNet: 49.8% drift improvement on stable sequences")
-    print("   • Divergence: pipeline bottleneck (not scale-recovery)")
-    print("   • Only seqs 02, 03 stable for both methods")
-    print("   • 8/12 sequences diverge on both methods")
+    print("\n📋 Research Summary:")
+    print("   • Total sequences analyzed: 6 (01, 02, 03, 05, 06, 08)")
+    print("   • Total ablation runs: 12 (2 methods × 6 sequences)")
+    print("   • Frames per sequence: 300")
+    print("   • Stable sequences: 02, 03 (both methods)")
+    print("   • Diverged sequences: 01, 05, 06, 08 (both methods)")
+    print("   • ScaleNet improvement: 49.8% on stable sequences")
 
-    print("\n🎯 Ready for research paper integration!")
+    print("\n🎯 Key findings ready for research paper:")
+    print("   1. Pose-graph divergence is pipeline bottleneck")
+    print("   2. ScaleNet: 49.8% drift improvement on stable sequences")
+    print("   3. Seq 03: only sequence with both ATE and drift improvement")
+    print("   4. Divergence independent of scale recovery method")
 
-    # Show available figures
-    print("\n🖼️  Generated visualizations:")
-    for file in output_dir.glob('*.png'):
-        print(f"   - {file.name}")
+    print("\n📝 Next steps for research paper:")
+    print("   1. Add visualization figures to methodology section")
+    print("   2. Include LaTeX table in results section")
+    print("   3. Update divergence analysis in discussion")
+    print("   4. Cite visualization files in supplementary materials")
 
-    plt.show()
+    print("\n✅ Ready for research paper submission!")
 
 if __name__ == '__main__':
     main()
