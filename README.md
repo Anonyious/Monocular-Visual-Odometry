@@ -235,24 +235,28 @@ This project includes **ScaleNet** (v1), a lightweight CNN (~0.25M parameters) t
 
 ### Ablation Results (300 frames per sequence)
 
-| Seq | Method | ATE RMSE (m) | Scale Drift | Δ ATE vs Baseline |
-|-----|--------|-------------|-------------|-------------------|
-| 01 | RANSAC | 177.27 | 65.7% | — |
-| 01 | **ScaleNet** | 175.91 | extreme* | −0.8% |
-| 02 | RANSAC | 22.29 | 20.9% | — |
-| 02 | **ScaleNet** | 45.20 | **6.8%** | +103% |
-| 03 | RANSAC | 45.05 | 58.3% | — |
-| 03 | **ScaleNet** | **39.38** | **32.9%** | **−12.6%** |
-| 05 | RANSAC | 52.27 | extreme* | — |
-| 05 | **ScaleNet** | 63.20 | extreme* | +21% |
-| 06 | RANSAC | 100.60 | 92.8% | — |
-| 06 | **ScaleNet** | 100.60 | **59.1%** | 0% |
-| 08 | RANSAC | 73.05 | extreme* | — |
-| 08 | **ScaleNet** | **71.94** | extreme* | −1.5% |
-| — | **Mean (healthy seqs 02,03,06)** | **55.98** | **57.3%** | — |
-| — | **Mean (healthy seqs 02,03,06)** | **61.73** | **32.9%** | — |
+| Seq | Method | ATE RMSE (m) | Scale Drift | Quality | Δ ATE vs Baseline |
+|-----|--------|-------------|-------------|---------|-------------------|
+| 01 | RANSAC | 177.27 | 65.7% | stable | — |
+| 01 | **ScaleNet** | 175.91 | diverged† | diverged | −0.8% |
+| 02 | RANSAC | 22.29 | 20.9% | stable | — |
+| 02 | **ScaleNet** | 45.20 | **6.8%** | stable | +103% |
+| 03 | RANSAC | 45.05 | 58.3% | stable | — |
+| 03 | **ScaleNet** | **39.38** | **32.9%** | stable | **−12.6%** |
+| 05 | RANSAC | 52.27 | diverged† | diverged | — |
+| 05 | **ScaleNet** | 63.20 | diverged† | diverged | +21% |
+| 06 | RANSAC | 100.60 | 92.8% | stable | — |
+| 06 | **ScaleNet** | 100.60 | **59.1%** | stable | 0% |
+| 08 | RANSAC | 73.05 | 1467% | stable‡ | — |
+| 08 | **ScaleNet** | **71.94** | diverged† | diverged | −1.5% |
 
-*Extreme drift indicates pose graph divergence; see `docs/research_paper.md` for full analysis.
+| — | **Mean (stable seqs 02,03,06)** | **55.98 m** | **57.3%** | — | — |
+| — | **Mean (stable seqs 02,03,06)** | **61.73 m** | **32.9%** | — | — |
+
+† Trajectory diverged during pose-graph optimisation (see paper §4.3).  
+‡ High drift but trajectory remained bounded.
+
+**Training**: 14,410 samples from KITTI seqs 01/02/05/06/08, best epoch 6 (val MAE = 0.377 m).
 
 **Training**: 14,410 samples from KITTI seqs 01/02/05/06/08, best epoch 6 (val MAE = 0.377 m).
 
