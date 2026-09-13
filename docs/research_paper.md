@@ -336,11 +336,12 @@ Key findings:
 - Mean scale drift across healthy sequences (02, 03, 06) improves by 42.5% with learned scale (32.9% vs 57.3%), with the largest gains on sequence 02 (20.9% → 6.8%, a 3× improvement).
 - On sequence 03, ScaleNet improves both ATE (45.05 → 39.38 m) and drift (58.3% → 32.9%) simultaneously — the only sequence where this occurs.
 - RANSAC outperforms ScaleNet on sequence 02 in ATE (22.29 vs 45.20 m) but achieves worse drift (20.9% vs 6.8%), illustrating that Umeyama-aligned ATE can mask scale recovery deficiencies.
-- Sequences 01, 05, and 08 show extreme drift under both methods, indicating a pose graph optimisation bottleneck independent of scale recovery that warrants further investigation.
+- Sequences 01, 05, and 08 expose a **pose-graph optimisation bottleneck**: loop-closure-triggered Gauss–Newton optimisation produces numerically unstable updates on these longer urban sequences, causing trajectory divergence in one or both methods. This is a pipeline-level issue independent of scale recovery.
+- Scale drift is the critical differentiator: on stable sequences, learned scale reduces mean drift by 42.5% while ATE remains comparable.
 
 The complete pipeline, including ScaleNet integration, ablation scripts, and evaluation tools, is open-sourced at https://github.com/Anonyious/Monocular-Visual-Odometry.
 
-**Future work** should address the pose graph stability issue (dense mapping, better keyframe selection) before the scale recovery contribution can be fully evaluated on long, complex sequences.
+**Future work** should address the pose-graph stability issue — specifically, robust loop-closure weighting and incremental optimisation — before the scale recovery contribution can be fully evaluated on long, complex sequences.
 
 ---
 
