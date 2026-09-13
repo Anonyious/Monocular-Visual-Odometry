@@ -237,7 +237,7 @@ This project includes **ScaleNet** (v1), a lightweight CNN (~0.25M parameters) t
 
 | Seq | Method | ATE RMSE (m) | Scale Drift | Quality | Δ ATE vs Baseline |
 |-----|--------|-------------|-------------|---------|-------------------|
-| 01 | RANSAC | 177.27 | 65.7% | stable | — |
+| 01 | RANSAC | 177.27 | 65.7% | diverged | — |
 | 01 | **ScaleNet** | 175.91 | 500.0% | diverged | −0.8% |
 | 02 | RANSAC | 22.29 | 20.9% | stable | — |
 | 02 | **ScaleNet** | 45.20 | **6.8%** | stable | +103% |

@@ -238,7 +238,7 @@ Ablation was performed on all six KITTI sequences (300 frames each) using both s
 
 | Seq | Frames | Method | ATE RMSE (m) | Scale Drift | Quality | Loop Closures | FPS |
 |-----|--------|--------|-------------|-------------|---------|---------------|-----|
-| 01 | 300 | RANSAC | 177.27 | 65.7% | stable | 9 | 2.7 |
+| 01 | 300 | RANSAC | 177.27 | 65.7% | diverged | 9 | 2.7 |
 | 01 | 300 | ScaleNet | 175.91 | 500.0% | diverged | 6 | 2.4 |
 | 02 | 300 | RANSAC | 22.29 | 20.9% | stable | 0 | 4.6 |
 | 02 | 300 | ScaleNet | 45.20 | **6.8%** | stable | 0 | 2.5 |
