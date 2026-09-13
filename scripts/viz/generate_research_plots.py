@@ -142,7 +142,6 @@ def create_statistics_table(output_dir):
 
     for r in sorted_results:
         status = 'STABLE' if not r['diverged'] else 'DIVERGED'
-        color = '#27AE60' if not r['diverged'] else '#E74C3C'
 
         table_data.append([
             r['sequence'],
@@ -154,26 +153,43 @@ def create_statistics_table(output_dir):
             status
         ])
 
-    # Create table using ax1.table()
-    table_data_clean = table_data[1:]  # Remove header
-    table = ax1.table(cellText=table_data_clean, colWidths=[0.12, 0.15, 0.12, 0.12,
-                        0.12, 0.10, 0.16], bbox=[0, 0, 1, 1], cellLoc='center')
+    # Create a formatted text table instead of matplotlib Table
+    table_str = ""
+    col_widths = [4, 6, 12, 12, 12, 8, 12]
 
-    # Style header
-    for i in range(len(table_data[0])):
-        cell = table.cell(0, i)
-        cell.set_facecolor('#3498DB')
-        cell.set_text_props(weight='bold', color='white', size=11)
+    # Header
+    header = table_data[0]
+    header_line = ""
+    for i, (col, width) in enumerate(zip(header, col_widths)):
+        header_line += f"{col:<{width}}"
+        if i < len(col_widths) - 1:
+            header_line += "  "
+    header_line += "\n"
 
-    # Style status cells
-    for i in range(1, len(table_data_clean)):
-        status = table_data[i + 1][6]  # Add 1 because we removed header and zero-index
-        cell = table.cell(i, 6)
-        if status == 'STABLE':
-            cell.set_facecolor('#D5F5E3')
-        else:
-            cell.set_facecolor('#FADBD8')
+    # Separator
+    sep_line = ""
+    for width in col_widths:
+        sep_line += "-" * width
+        sep_line += "  "
+    sep_line += "\n"
 
+    table_str += header_line + sep_line
+
+    # Table rows
+    for row in table_data[1:]:
+        line = ""
+        for i, (value, width) in enumerate(zip(row, col_widths)):
+            if i == 6:  # Status column
+                line += f"{value:<{width}}"
+            else:
+                line += f"{value:<{width}}"
+            if i < len(col_widths) - 1:
+                line += "  "
+        line += "\n"
+        table_str += line
+
+    ax1.text(0.5, 0.5, table_str, ha='center', va='center',
+             fontfamily='monospace', fontsize=8, transform=ax1.transAxes)
     ax1.set_title('Complete Ablation Results (300 frames per sequence)',
                  fontsize=14, fontweight='bold', pad=20)
 
