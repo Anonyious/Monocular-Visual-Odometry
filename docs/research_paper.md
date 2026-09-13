@@ -239,39 +239,38 @@ Ablation was performed on all six KITTI sequences (300 frames each) using both s
 | Seq | Frames | Method | ATE RMSE (m) | Scale Drift | Quality | Loop Closures | FPS |
 |-----|--------|--------|-------------|-------------|---------|---------------|-----|
 | 01 | 300 | RANSAC | 177.27 | 65.7% | stable | 9 | 2.7 |
-| 01 | 300 | ScaleNet | 175.91 | diverged† | diverged | 6 | 2.3 |
-| 02 | 300 | RANSAC | 22.29 | 20.9% | stable | 0 | 4.4 |
-| 02 | 300 | ScaleNet | 45.20 | **6.8%** | stable | 0 | 2.0 |
-| 03 | 300 | RANSAC | 45.05 | 58.3% | stable | 2 | 4.5 |
-| 03 | 300 | ScaleNet | 39.38 | **32.9%** | stable | 1 | 1.9 |
-| 05 | 300 | RANSAC | 52.27 | diverged† | diverged | 5 | 2.8 |
-| 05 | 300 | ScaleNet | 63.20 | diverged† | diverged | 1 | 1.9 |
-| 06 | 300 | RANSAC | 100.60 | 92.8% | stable | 14 | 2.4 |
-| 06 | 300 | ScaleNet | 100.60 | **59.1%** | stable | 11 | 1.4 |
-| 08 | 300 | RANSAC | 73.05 | 1467% | stable‡ | 0 | 4.3 |
-| 08 | 300 | ScaleNet | 71.94 | diverged† | diverged | 0 | 2.0 |
+| 01 | 300 | ScaleNet | 175.91 | 500.0% | diverged | 6 | 2.4 |
+| 02 | 300 | RANSAC | 22.29 | 20.9% | stable | 0 | 4.6 |
+| 02 | 300 | ScaleNet | 45.20 | **6.8%** | stable | 0 | 2.5 |
+| 03 | 300 | RANSAC | 45.05 | 58.3% | stable | 2 | 4.9 |
+| 03 | 300 | ScaleNet | 39.38 | **32.9%** | stable | 1 | 2.7 |
+| 05 | 300 | RANSAC | 52.27 | 500.0% | diverged | 5 | 3.0 |
+| 05 | 300 | ScaleNet | 63.20 | 500.0% | diverged | 1 | 2.4 |
+| 06 | 300 | RANSAC | 100.60 | 92.8% | diverged | 14 | 2.5 |
+| 06 | 300 | ScaleNet | 100.60 | **59.1%** | diverged | 11 | 2.0 |
+| 08 | 300 | RANSAC | 73.05 | 500.0% | diverged | 0 | 4.5 |
+| 08 | 300 | ScaleNet | 71.94 | 500.0% | diverged | 0 | 2.6 |
 
-† Trajectory diverged during pose-graph optimisation (position exceeded 10× GT max extent).  
-‡ High drift but trajectory did not diverge; pose-graph remained bounded.
+† Trajectory diverged during pose-graph optimisation (position exceeded 10× GT max extent).
 
-**Table 2: Mean across stable sequences** (seqs 02, 03, 06 — where neither method diverges)
+**Table 2: Mean across stable sequences** (seqs 02, 03 — the only sequences where neither method diverges)
 
 | Metric | RANSAC | ScaleNet | Δ |
 |--------|--------|----------|---|
-| Mean ATE RMSE | 55.98 m | 61.73 m | +10.3% |
-| Mean Scale Drift | 57.3% | **32.9%** | **−42.5%** |
-| Mean Loop Closures | 4.7 | 4.0 | −0.7 |
-| Mean FPS | 3.8 | 1.8 | −2.0 |
+| Mean ATE RMSE | 33.67 m | 42.29 m | +25.5% |
+| Mean Scale Drift | 39.6% | **19.9%** | **−49.8%** |
+| Mean Loop Closures | 1.0 | 0.5 | −0.5 |
+| Mean FPS | 4.8 | 2.6 | −2.2 |
 
 **Key findings:**
 
-1. **Scale drift is dramatically improved by ScaleNet across all healthy sequences.** On sequence 02 (straight road), drift drops from 20.9% to 6.8% (3× improvement). On sequence 06, drift drops from 92.8% to 59.1% (36% relative reduction). Mean scale drift improves by 42.5% (57.3% → 32.9%).
+1. **Scale drift is dramatically improved by ScaleNet on stable sequences.** On sequence 02 (straight road), drift drops from 20.9% to 6.8% (3× improvement). On sequence 03, drift drops from 58.3% to 32.9% (44% relative reduction). Mean scale drift across stable sequences (02, 03) improves by 49.8% (39.6% → 19.9%).
 
 2. **Sequence 03 is the only case where ScaleNet improves both ATE and drift simultaneously** (ATE: 45.05 → 39.38 m, drift: 58.3% → 32.9%). This suggests that on curvy road sequences with moderate terrain variation, learned scale provides a more consistent estimate than ground-plane fitting.
 
 3. **RANSAC outperforms ScaleNet on sequence 02 in ATE** (22.29 vs 45.20 m) but achieves worse scale drift (20.9% vs 6.8%). The ATE is computed after Sim(3) Umeyama alignment, which rescales the trajectory to match ground truth — so a lower ATE can mask poor scale recovery. Scale drift directly measures scale quality and shows ScaleNet is superior here.
 
-4. **Sequences 01, 05, and 08 exhibit pose-graph divergence** in at least one method. Trace analysis shows the divergence is triggered by loop-closure-induced optimisation: when a new loop edge is added, the scipy Gauss–Newton optimiser produces numerically unstable updates that send keyframe poses to infinity. This is a **pipeline-level bottleneck**, not a scale-recovery failure — RANSAC also diverges on seq 05 and partially on seq 08. Sequence 01 baseline recovers after the divergence spike (final position returns to ~163 m), but learned scale does not.
+4. **Sequences 01, 05, 06, and 08 exhibit pose-graph divergence** in at least one or both methods. Trace analysis shows the divergence is triggered by loop-closure-induced optimisation: when a new loop edge is added, the scipy Gauss–Newton optimiser produces numerically unstable updates that send keyframe poses to infinity. This is a **pipeline-level bottleneck**, not a scale-recovery failure — both RANSAC and ScaleNet diverge on these sequences. Only sequences 02 and 03 remain stable for both methods.
 
 5. **ScaleNet runs at ~1.8 FPS vs 3.8 FPS for RANSAC** — the optical flow computation adds ~80 ms per frame. This is below real-time for navigation but acceptable for post-processing applications.
 
