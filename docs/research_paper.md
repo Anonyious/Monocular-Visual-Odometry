@@ -236,24 +236,25 @@ Ablation was performed on all six KITTI sequences (300 frames each) using both s
 
 **Table 1: Per-sequence ablation results (300 frames)**
 
-| Seq | Frames | Method | ATE RMSE (m) | Scale Drift | Loop Closures | FPS |
-|-----|--------|--------|-------------|-------------|---------------|-----|
-| 01 | 300 | RANSAC | 177.27 | 65.7% | 9 | 2.7 |
-| 01 | 300 | ScaleNet | 175.91 | extreme* | 6 | 2.3 |
-| 02 | 300 | RANSAC | 22.29 | 20.9% | 0 | 4.4 |
-| 02 | 300 | ScaleNet | 45.20 | **6.8%** | 0 | 2.0 |
-| 03 | 300 | RANSAC | 45.05 | 58.3% | 2 | 4.5 |
-| 03 | 300 | ScaleNet | 39.38 | **32.9%** | 1 | 1.9 |
-| 05 | 300 | RANSAC | 52.27 | extreme* | 5 | 2.8 |
-| 05 | 300 | ScaleNet | 63.20 | extreme* | 1 | 1.9 |
-| 06 | 300 | RANSAC | 100.60 | 92.8% | 14 | 2.4 |
-| 06 | 300 | ScaleNet | 100.60 | **59.1%** | 11 | 1.4 |
-| 08 | 300 | RANSAC | 73.05 | extreme* | 0 | 4.3 |
-| 08 | 300 | ScaleNet | 71.94 | extreme* | 0 | 2.0 |
+| Seq | Frames | Method | ATE RMSE (m) | Scale Drift | Quality | Loop Closures | FPS |
+|-----|--------|--------|-------------|-------------|---------|---------------|-----|
+| 01 | 300 | RANSAC | 177.27 | 65.7% | stable | 9 | 2.7 |
+| 01 | 300 | ScaleNet | 175.91 | diverged† | diverged | 6 | 2.3 |
+| 02 | 300 | RANSAC | 22.29 | 20.9% | stable | 0 | 4.4 |
+| 02 | 300 | ScaleNet | 45.20 | **6.8%** | stable | 0 | 2.0 |
+| 03 | 300 | RANSAC | 45.05 | 58.3% | stable | 2 | 4.5 |
+| 03 | 300 | ScaleNet | 39.38 | **32.9%** | stable | 1 | 1.9 |
+| 05 | 300 | RANSAC | 52.27 | diverged† | diverged | 5 | 2.8 |
+| 05 | 300 | ScaleNet | 63.20 | diverged† | diverged | 1 | 1.9 |
+| 06 | 300 | RANSAC | 100.60 | 92.8% | stable | 14 | 2.4 |
+| 06 | 300 | ScaleNet | 100.60 | **59.1%** | stable | 11 | 1.4 |
+| 08 | 300 | RANSAC | 73.05 | 1467% | stable‡ | 0 | 4.3 |
+| 08 | 300 | ScaleNet | 71.94 | diverged† | diverged | 0 | 2.0 |
 
-*Extreme drift indicates pose graph divergence; exact percentage exceeds displayable range.
+† Trajectory diverged during pose-graph optimisation (position exceeded 10× GT max extent).  
+‡ High drift but trajectory did not diverge; pose-graph remained bounded.
 
-**Table 2: Mean across "healthy" sequences** (where both methods achieve drift < 100%: seqs 02, 03, 06)
+**Table 2: Mean across stable sequences** (seqs 02, 03, 06 — where neither method diverges)
 
 | Metric | RANSAC | ScaleNet | Δ |
 |--------|--------|----------|---|
