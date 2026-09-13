@@ -202,7 +202,7 @@ def create_statistics_table(output_dir):
 
     # Create box plots
     data_to_plot = [baseline_drifts, learned_drifts]
-    box = ax2.boxplot(data_to_plot, labels=['RANSAC', 'ScaleNet'], patch_artist=True)
+    box = ax2.boxplot(data_to_plot, label=['RANSAC', 'ScaleNet'], patch_artist=True)
 
     # Style boxes
     colors_box = [colors['ransac'], colors['scalenet']]
