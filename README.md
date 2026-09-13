@@ -238,25 +238,22 @@ This project includes **ScaleNet** (v1), a lightweight CNN (~0.25M parameters) t
 | Seq | Method | ATE RMSE (m) | Scale Drift | Quality | Δ ATE vs Baseline |
 |-----|--------|-------------|-------------|---------|-------------------|
 | 01 | RANSAC | 177.27 | 65.7% | stable | — |
-| 01 | **ScaleNet** | 175.91 | diverged† | diverged | −0.8% |
+| 01 | **ScaleNet** | 175.91 | 500.0% | diverged | −0.8% |
 | 02 | RANSAC | 22.29 | 20.9% | stable | — |
 | 02 | **ScaleNet** | 45.20 | **6.8%** | stable | +103% |
 | 03 | RANSAC | 45.05 | 58.3% | stable | — |
 | 03 | **ScaleNet** | **39.38** | **32.9%** | stable | **−12.6%** |
-| 05 | RANSAC | 52.27 | diverged† | diverged | — |
-| 05 | **ScaleNet** | 63.20 | diverged† | diverged | +21% |
-| 06 | RANSAC | 100.60 | 92.8% | stable | — |
-| 06 | **ScaleNet** | 100.60 | **59.1%** | stable | 0% |
-| 08 | RANSAC | 73.05 | 1467% | stable‡ | — |
-| 08 | **ScaleNet** | **71.94** | diverged† | diverged | −1.5% |
+| 05 | RANSAC | 52.27 | 500.0% | diverged | — |
+| 05 | **ScaleNet** | 63.20 | 500.0% | diverged | +21% |
+| 06 | RANSAC | 100.60 | 92.8% | diverged | — |
+| 06 | **ScaleNet** | 100.60 | **59.1%** | diverged | 0% |
+| 08 | RANSAC | 73.05 | 500.0% | diverged | — |
+| 08 | **ScaleNet** | **71.94** | 500.0% | diverged | −1.5% |
 
-| — | **Mean (stable seqs 02,03,06)** | **55.98 m** | **57.3%** | — | — |
-| — | **Mean (stable seqs 02,03,06)** | **61.73 m** | **32.9%** | — | — |
+| — | **Mean (stable seqs 02,03)** | **33.67 m** | **39.6%** | — | — |
+| — | **Mean (stable seqs 02,03)** | **42.29 m** | **19.9%** | — | — |
 
-† Trajectory diverged during pose-graph optimisation (see paper §4.3).  
-‡ High drift but trajectory remained bounded.
-
-**Training**: 14,410 samples from KITTI seqs 01/02/05/06/08, best epoch 6 (val MAE = 0.377 m).
+† Trajectory diverged during pose-graph optimisation (position exceeded 10× GT max extent; see paper §4.3).
 
 **Training**: 14,410 samples from KITTI seqs 01/02/05/06/08, best epoch 6 (val MAE = 0.377 m).
 
