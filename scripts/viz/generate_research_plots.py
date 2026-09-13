@@ -193,8 +193,14 @@ def create_statistics_table(output_dir):
     ax1.set_title('Complete Ablation Results (300 frames per sequence)',
                  fontsize=14, fontweight='bold', pad=20)
 
-    # === SUBPLOT 2: Scale Drift Distribution ===
-    ax2 = plt.subplot(2, 2, 2)
+    # Define colors for this function
+    colors = {
+        'ground_truth': '#2C3E50',      # Dark blue-gray for ground truth
+        'ransac': '#3498DB',           # Bright blue for RANSAC baseline
+        'scalenet': '#E74C3C',         # Red for ScaleNet learned
+        'stable': '#27AE60',           # Green for stable trajectories
+        'diverged': '#E67E22',         # Orange for diverged trajectories
+    }
 
     # Group by method
     baseline_drifts = [r['scale_drift'] for r in sorted_results if r['variant'] == 'baseline']
