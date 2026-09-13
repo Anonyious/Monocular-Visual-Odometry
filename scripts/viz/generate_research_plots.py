@@ -224,7 +224,7 @@ def create_statistics_table(output_dir):
         whisker.set_color('black')
         whisker.set_linewidth(1.5)
     for cap in box['caps']:
-        cap.set_facecolor('black')
+        cap.set_edgecolor('black')
         cap.set_linewidth(1.5)
 
     ax2.set_ylabel('Scale Drift (%)', fontsize=12)
