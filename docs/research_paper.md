@@ -271,7 +271,7 @@ Ablation was performed on all six KITTI sequences (300 frames each) using both s
 
 3. **RANSAC outperforms ScaleNet on sequence 02 in ATE** (22.29 vs 45.20 m) but achieves worse scale drift (20.9% vs 6.8%). The ATE is computed after Sim(3) Umeyama alignment, which rescales the trajectory to match ground truth — so a lower ATE can mask poor scale recovery. Scale drift directly measures scale quality and shows ScaleNet is superior here.
 
-4. **Sequences 01, 05, and 08 show extreme drift** for one or both methods, indicating pose graph optimisation instability. These are longer urban scenes with complex geometry where the pose graph accumulates too many divergent constraints.
+4. **Sequences 01, 05, and 08 exhibit pose-graph divergence** in at least one method. Trace analysis shows the divergence is triggered by loop-closure-induced optimisation: when a new loop edge is added, the scipy Gauss–Newton optimiser produces numerically unstable updates that send keyframe poses to infinity. This is a **pipeline-level bottleneck**, not a scale-recovery failure — RANSAC also diverges on seq 05 and partially on seq 08. Sequence 01 baseline recovers after the divergence spike (final position returns to ~163 m), but learned scale does not.
 
 5. **ScaleNet runs at ~1.8 FPS vs 3.8 FPS for RANSAC** — the optical flow computation adds ~80 ms per frame. This is below real-time for navigation but acceptable for post-processing applications.
 
