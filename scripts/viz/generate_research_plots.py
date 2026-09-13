@@ -128,6 +128,15 @@ def create_statistics_table(output_dir):
     stats_fig.suptitle('Ablation Study: Complete Results and Analysis',
                       fontsize=18, fontweight='bold', y=0.98)
 
+    # Define colors for this function
+    colors = {
+        'ground_truth': '#2C3E50',      # Dark blue-gray for ground truth
+        'ransac': '#3498DB',           # Bright blue for RANSAC baseline
+        'scalenet': '#E74C3C',         # Red for ScaleNet learned
+        'stable': '#27AE60',           # Green for stable trajectories
+        'diverged': '#E67E22',         # Orange for diverged trajectories
+    }
+
     # === SUBPLOT 1: Detailed Results Table ===
     ax1 = plt.subplot(2, 2, 1)
     ax1.axis('tight')
@@ -192,15 +201,6 @@ def create_statistics_table(output_dir):
              fontfamily='monospace', fontsize=8, transform=ax1.transAxes)
     ax1.set_title('Complete Ablation Results (300 frames per sequence)',
                  fontsize=14, fontweight='bold', pad=20)
-
-    # Define colors for this function
-    colors = {
-        'ground_truth': '#2C3E50',      # Dark blue-gray for ground truth
-        'ransac': '#3498DB',           # Bright blue for RANSAC baseline
-        'scalenet': '#E74C3C',         # Red for ScaleNet learned
-        'stable': '#27AE60',           # Green for stable trajectories
-        'diverged': '#E67E22',         # Orange for diverged trajectories
-    }
 
     # === SUBPLOT 2: Scale Drift Distribution ===
     ax2 = plt.subplot(2, 2, 2)
