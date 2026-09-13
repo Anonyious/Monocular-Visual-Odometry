@@ -202,6 +202,9 @@ def create_statistics_table(output_dir):
         'diverged': '#E67E22',         # Orange for diverged trajectories
     }
 
+    # === SUBPLOT 2: Scale Drift Distribution ===
+    ax2 = plt.subplot(2, 2, 2)
+
     # Group by method
     baseline_drifts = [r['scale_drift'] for r in sorted_results if r['variant'] == 'baseline']
     learned_drifts = [r['scale_drift'] for r in sorted_results if r['variant'] == 'learned']
