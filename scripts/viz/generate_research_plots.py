@@ -154,20 +154,21 @@ def create_statistics_table(output_dir):
             status
         ])
 
-    # Create table
-    table = Table(ax1, cellText=table_data[1:], colWidths=[0.12, 0.15, 0.12, 0.12,
+    # Create table using ax1.table()
+    table_data_clean = table_data[1:]  # Remove header
+    table = ax1.table(cellText=table_data_clean, colWidths=[0.12, 0.15, 0.12, 0.12,
                         0.12, 0.10, 0.16], bbox=[0, 0, 1, 1], cellLoc='center')
 
     # Style header
     for i in range(len(table_data[0])):
-        cell = table[(0, i)]
+        cell = table.cell(0, i)
         cell.set_facecolor('#3498DB')
         cell.set_text_props(weight='bold', color='white', size=11)
 
     # Style status cells
-    for i in range(1, len(table_data)):
-        status = table_data[i][6]
-        cell = table[(i, 6)]
+    for i in range(1, len(table_data_clean)):
+        status = table_data[i + 1][6]  # Add 1 because we removed header and zero-index
+        cell = table.cell(i, 6)
         if status == 'STABLE':
             cell.set_facecolor('#D5F5E3')
         else:
