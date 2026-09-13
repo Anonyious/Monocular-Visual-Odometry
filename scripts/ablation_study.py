@@ -85,25 +85,19 @@ def run_sequence(
         ate_rmse, ate_mean = compute_ate(est, gt, align=True, with_scale=True)
         rpe_rmse, rpe_mean = compute_rpe(est, gt, delta=1)
 
-        # Scale drift: cumulative path-length ratio, capped at 500% to handle
+        # Scale drift: endpoint-distance ratio, capped at 500% to handle
         # pose-graph divergence without producing displayable nonsense.
         est_pos = _extract_positions(est)
         gt_pos = _extract_positions(gt)
-        est_diffs = np.diff(est_pos, axis=0)
-        gt_diffs = np.diff(gt_pos, axis=0)
-        est_cum = np.cumsum(np.linalg.norm(est_diffs, axis=1))
-        gt_cum = np.cumsum(np.linalg.norm(gt_diffs, axis=1))
-        n_pts = min(len(est_cum), len(gt_cum))
-        if n_pts > 0 and gt_cum[n_pts - 1] > 0:
-            scale_drift = float(est_cum[n_pts - 1] / gt_cum[n_pts - 1] - 1.0)
-            scale_drift = max(-0.99, min(scale_drift, 5.0))  # cap at 500 %
-        else:
-            scale_drift = float("nan")
+        est_dist = float(np.linalg.norm(est_pos[-1] - est_pos[0])) if len(est_pos) > 1 else 0.0
+        gt_dist = float(np.linalg.norm(gt_pos[-1] - gt_pos[0])) if len(gt_pos) > 1 else 0.0
+        scale_drift = abs(est_dist / gt_dist - 1.0) if gt_dist > 0 else float("nan")
+        scale_drift = max(-0.99, min(float(scale_drift), 5.0))  # cap at 500 %
 
         # Detect whether the trajectory diverged (position exceeds 10× GT max)
-        gt_max_dist = np.max(np.linalg.norm(gt_pos - gt_pos[0], axis=1)) if len(gt_pos) > 0 else 0
-        est_max_dist = np.max(np.linalg.norm(est_pos - est_pos[0], axis=1)) if len(est_pos) > 0 else 0
-        diverged = est_max_dist > 10 * gt_max_dist if gt_max_dist > 0 else False
+        gt_max_dist = float(np.max(np.linalg.norm(gt_pos - gt_pos[0], axis=1))) if len(gt_pos) > 0 else 0.0
+        est_max_dist = float(np.max(np.linalg.norm(est_pos - est_pos[0], axis=1))) if len(est_pos) > 0 else 0.0
+        diverged = bool(est_max_dist > 10 * gt_max_dist) if gt_max_dist > 0 else False
 
         fps = n / elapsed if elapsed > 0 else 0
 
